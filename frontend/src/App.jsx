@@ -18,13 +18,81 @@ import {
   Check,
   Ban,
   Copy,
-  CheckCheck
+  CheckCheck,
+  Sparkles,
+  Info,
+  ArrowLeft,
+  MapPin
 } from 'lucide-react';
+import LandingPage from './LandingPage';
 
 const API_BASE = 'http://127.0.0.1:8000';
 const CONCEPT_DEMO_ID = 'concept_demo';
 const DEMO_WIDTH = 320;
 const DEMO_HEIGHT = 240;
+const DEFAULT_BOUNDS = [[26.14665, 91.7241], [26.19837, 91.77582]];
+
+/* ──────────────────────────────────────────────
+   Top-Level Error Boundary
+─────────────────────────────────────────────── */
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('DRISHTI Workstation Error Boundary caught an exception:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          padding: 40,
+          color: '#ffffff',
+          textAlign: 'center',
+          background: '#030712',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'system-ui, sans-serif'
+        }}>
+          <AlertCircle size={36} style={{ color: '#38bdf8', marginBottom: 12 }} />
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 8, letterSpacing: '0.02em' }}>
+            Workstation Display Restored
+          </h3>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', maxWidth: 400, marginBottom: 20, lineHeight: 1.5 }}>
+            An unexpected error occurred during map rendering. Please select a valid target location or reload the workstation.
+          </p>
+          <button 
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            style={{
+              padding: '9px 20px',
+              background: '#38bdf8',
+              color: '#030712',
+              border: 'none',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              letterSpacing: '0.03em'
+            }}
+          >
+            RELOAD WORKSTATION
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const CATEGORY_COLORS = {
   'ROAD CHANGE': '#ffffff',             // White
@@ -61,15 +129,111 @@ function MoDLogo() {
       src="/Ministry_of_Defence_India.svg" 
       alt="Ministry of Defence India" 
       className="mod-header-logo-img" 
-      onError={() => setImgError(true)} 
+      onError={() => setImgError(true)}
     />
   );
+}
+
+// Leaflet Map Resizer Component
+function MapResizer({ isSidebarOpen, selectedChange }) {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [isSidebarOpen, selectedChange, map]);
+  return null;
+}
+
+// Leaflet Bounds Fitter Component
+function MapBoundsFitter({ bounds }) {
+  const map = useMap();
+  useEffect(() => {
+    if (bounds && Array.isArray(bounds) && bounds.length === 2 && Array.isArray(bounds[0]) && Array.isArray(bounds[1])) {
+      try {
+        map.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
+      } catch (err) {
+        // Safe catch for Leaflet bounds invalidation
+      }
+    }
+  }, [bounds, map]);
+  return null;
+}
+
+// Map Dual-Pane Synchronizer Component
+function MapSynchronizer({ center, zoom, onMapMoved }) {
+  const map = useMap();
+  const isUpdatingFromProps = useRef(false);
+
+  useEffect(() => {
+    if (center && Array.isArray(center) && center.length === 2 && typeof center[0] === 'number' && !isNaN(center[0])) {
+      isUpdatingFromProps.current = true;
+      map.setView(center, zoom, { animate: false });
+      setTimeout(() => { isUpdatingFromProps.current = false; }, 50);
+    }
+  }, [center, zoom, map]);
+
+  useMapEvents({
+    moveend: () => {
+      if (isUpdatingFromProps.current) return;
+      const c = map.getCenter();
+      const z = map.getZoom();
+      if (onMapMoved) {
+        onMapMoved([c.lat, c.lng], z);
+      }
+    }
+  });
+
+  return null;
+}
+
+function getChangeCoordinates(change, locBounds) {
+  if (!change) return { latStr: 'N/A', lonStr: 'N/A', latVal: null, lonVal: null };
+
+  let lat = null;
+  let lon = null;
+
+  if (Array.isArray(change.centroid) && change.centroid.length === 2 && typeof change.centroid[0] === 'number') {
+    lat = change.centroid[0];
+    lon = change.centroid[1];
+  } else if (Array.isArray(change.center) && change.center.length === 2 && typeof change.center[0] === 'number') {
+    lat = change.center[0];
+    lon = change.center[1];
+  } else if (Array.isArray(change.centroid_lonlat) && change.centroid_lonlat.length === 2 && typeof change.centroid_lonlat[0] === 'number') {
+    lon = change.centroid_lonlat[0];
+    lat = change.centroid_lonlat[1];
+  } else if (change.geometry && change.geometry.coordinates && change.geometry.coordinates[0]) {
+    const coordsArr = change.geometry.coordinates[0];
+    let sumLon = 0, sumLat = 0;
+    coordsArr.forEach(([cLon, cLat]) => {
+      sumLon += cLon;
+      sumLat += cLat;
+    });
+    lon = sumLon / coordsArr.length;
+    lat = sumLat / coordsArr.length;
+  } else if (change.pixel_bbox) {
+    const [minX, minY, maxX, maxY] = change.pixel_bbox;
+    const b = locBounds || DEFAULT_BOUNDS;
+    const latMin = b[0][0], lonMin = b[0][1], latMax = b[1][0], lonMax = b[1][1];
+    const avgX = (minX + maxX) / 2 / DEMO_WIDTH;
+    const avgY = (minY + maxY) / 2 / DEMO_HEIGHT;
+    lon = lonMin + avgX * (lonMax - lonMin);
+    lat = latMax - avgY * (latMax - latMin);
+  } else {
+    lat = 26.1624;
+    lon = 91.7422;
+  }
+
+  const latStr = `${Math.abs(lat).toFixed(5)}° ${lat >= 0 ? 'N' : 'S'}`;
+  const lonStr = `${Math.abs(lon).toFixed(5)}° ${lon >= 0 ? 'E' : 'W'}`;
+
+  return { latStr, lonStr, latVal: lat, lonVal: lon };
 }
 
 const CONCEPT_DEMO_LOCATION = {
   location_id: CONCEPT_DEMO_ID,
   name: 'Concept Demo',
-  badge_icon: '🎨',
   category: 'CHANGE DETECTION DEMO',
   description: 'Lightweight synthetic dataset for demonstrating the change-detection workflow.',
   reference_scene: { date: 'DEMO BEFORE (2024-02-10)' },
@@ -79,172 +243,74 @@ const CONCEPT_DEMO_LOCATION = {
 function drawDemoScene(ctx, after = false) {
   ctx.clearRect(0, 0, DEMO_WIDTH, DEMO_HEIGHT);
   ctx.fillStyle = '#b8956f'; ctx.fillRect(0, 0, DEMO_WIDTH, DEMO_HEIGHT);
-  ctx.fillStyle = '#72965e'; ctx.fillRect(0, 0, 128, 108);
-  ctx.fillStyle = '#238b45';
-  ctx.beginPath(); ctx.arc(62, 58, after ? 30 : 42, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(112, 34, 21, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#2563eb'; ctx.beginPath();
-  ctx.moveTo(after ? 245 : 262, 0); ctx.lineTo(320, 0); ctx.lineTo(320, 240); ctx.lineTo(after ? 226 : 250, 240); ctx.bezierCurveTo(270, 185, 228, 118, after ? 245 : 262, 0); ctx.fill();
-  ctx.fillStyle = '#707782'; ctx.fillRect(0, 130, after ? 252 : 215, 16);
-  ctx.fillStyle = '#cbd5e1'; ctx.fillRect(8, 136, after ? 232 : 195, 3);
-  ctx.fillStyle = '#64748b'; ctx.fillRect(105, 182, 34, 33);
-  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 3; ctx.strokeRect(105, 182, 34, 33);
-  if (after) { 
-    ctx.fillStyle = '#64748b'; ctx.fillRect(160, 169, 32, 45); ctx.fillRect(205, 184, 30, 30); 
-    ctx.strokeStyle = '#e2e8f0'; ctx.strokeRect(160, 169, 32, 45); ctx.strokeRect(205, 184, 30, 30); 
+  ctx.fillStyle = '#3d633b'; ctx.fillRect(150, 0, 170, 240);
+  ctx.fillStyle = '#2b4d29'; ctx.fillRect(20, 20, 90, 80);
+  ctx.fillStyle = '#7a7672'; ctx.beginPath(); ctx.arc(70, 170, 35, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1e3a5f'; ctx.beginPath(); ctx.moveTo(0, 110); ctx.bezierCurveTo(100, 100, 220, 140, 320, 120); ctx.lineTo(320, 150); ctx.bezierCurveTo(220, 170, 100, 130, 0, 140); ctx.closePath(); ctx.fill();
+
+  if (after) {
+    ctx.fillStyle = '#3a3a3a'; ctx.fillRect(200, 30, 80, 50);
+    ctx.fillStyle = '#4a4a4a'; ctx.fillRect(215, 40, 50, 30);
+    ctx.fillStyle = '#6b7280'; ctx.beginPath(); ctx.moveTo(0, 80); ctx.lineTo(320, 80); ctx.lineWidth = 6; ctx.strokeStyle = '#4b5563'; ctx.stroke();
+    ctx.fillStyle = '#1e3a5f'; ctx.beginPath(); ctx.arc(100, 190, 25, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#8c7e6c'; ctx.fillRect(160, 140, 70, 60);
   }
 }
 
-function runDemoComparison() {
-  const before = document.createElement('canvas'); before.width = DEMO_WIDTH; before.height = DEMO_HEIGHT;
-  const after = document.createElement('canvas'); after.width = DEMO_WIDTH; after.height = DEMO_HEIGHT;
-  drawDemoScene(before.getContext('2d'), false); drawDemoScene(after.getContext('2d'), true);
-  const a = before.getContext('2d').getImageData(0, 0, DEMO_WIDTH, DEMO_HEIGHT).data;
-  const b = after.getContext('2d').getImageData(0, 0, DEMO_WIDTH, DEMO_HEIGHT).data;
-  const changed = new Uint8Array(DEMO_WIDTH * DEMO_HEIGHT);
-  for (let i = 0; i < changed.length; i++) {
-    const p = i * 4;
-    changed[i] = Math.abs(a[p] - b[p]) + Math.abs(a[p + 1] - b[p + 1]) + Math.abs(a[p + 2] - b[p + 2]) > 48 ? 1 : 0;
-  }
-  const visited = new Uint8Array(changed.length); const regions = [];
-  for (let start = 0; start < changed.length; start++) {
-    if (!changed[start] || visited[start]) continue;
-    const queue = [start]; visited[start] = 1; const pixels = []; let minX = DEMO_WIDTH, minY = DEMO_HEIGHT, maxX = 0, maxY = 0;
-    for (let q = 0; q < queue.length; q++) {
-      const pos = queue[q]; const x = pos % DEMO_WIDTH; const y = Math.floor(pos / DEMO_WIDTH); pixels.push(pos);
-      minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
-      [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]].forEach(([nx, ny]) => {
-        const ni = ny * DEMO_WIDTH + nx;
-        if (nx >= 0 && nx < DEMO_WIDTH && ny >= 0 && ny < DEMO_HEIGHT && changed[ni] && !visited[ni]) { visited[ni] = 1; queue.push(ni); }
-      });
-    }
-    if (pixels.length < 40) continue;
-    const cx = (minX + maxX) / 2; const cy = (minY + maxY) / 2;
-    const type = cx > 235 ? 'WATER EXTENT CHANGE' : cy >= 118 && cy <= 160 ? 'ROAD CHANGE' : cx < 145 && cy < 120 ? 'VEGETATION LOSS' : 'NEW CONSTRUCTION';
-    const extent = Math.min(1, pixels.length / 1600); const shape = Math.min(1, pixels.length / Math.max(1, (maxX - minX + 1) * (maxY - minY + 1)));
-    regions.push({ 
-      id: `demo-${regions.length + 1}`, 
-      is_demo: true, 
-      type, 
-      pixels, 
-      pixel_bbox: [minX, minY, maxX, maxY], 
-      area_pixels: pixels.length, 
-      confidence: Number((0.75 + 0.18 * extent + 0.05 * shape).toFixed(2)), 
-      explanation: `${type.replace(/_/g, ' ').replace('LOSS', 'CHANGE')} detected by comparing satellite scenes.`, 
-      dates: ['2024-02-10', '2024-10-22'] 
-    });
-  }
-  return regions.sort((x, y) => y.area_pixels - x.area_pixels);
-}
-
-// Fallback Leaflet bounds
-const DEFAULT_BOUNDS = [[26.14665, 91.72410], [26.19837, 91.77582]];
-
-// Map synchronization helper
-function MapSynchronizer({ center, zoom, onMapMoved }) {
-  const map = useMap();
-  const isMovingRef = useRef(false);
-
-  useEffect(() => {
-    if (center && zoom && !isMovingRef.current) {
-      const currentCenter = map.getCenter();
-      const currentZoom = map.getZoom();
-      if (
-        Math.abs(currentCenter.lat - center[0]) > 1e-5 ||
-        Math.abs(currentCenter.lng - center[1]) > 1e-5 ||
-        currentZoom !== zoom
-      ) {
-        map.setView(center, zoom, { animate: true });
-      }
-    }
-  }, [center, zoom, map]);
-
-  useMapEvents({
-    movestart: () => { isMovingRef.current = true; },
-    moveend: () => {
-      isMovingRef.current = false;
-      const c = map.getCenter();
-      onMapMoved([c.lat, c.lng], map.getZoom());
-    },
-    zoomend: () => {
-      isMovingRef.current = false;
-      const c = map.getCenter();
-      onMapMoved([c.lat, c.lng], map.getZoom());
-    }
-  });
-
-  return null;
-}
-
-// Auto map resizer helper to invalidate Leaflet container dimensions when sidebar toggles or right details panel toggles
-function MapResizer({ isSidebarOpen, selectedChange }) {
-  const map = useMap();
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 280);
-    return () => clearTimeout(timer);
-  }, [isSidebarOpen, selectedChange, map]);
-  return null;
-}
-
-// Fit map view to GeoTIFF bounds tightly with minimal padding (0 black borders)
-function MapBoundsFitter({ bounds }) {
-  const map = useMap();
-  const prevBoundsRef = useRef(null);
-
-  useEffect(() => {
-    if (bounds && bounds.length === 2 && bounds[0] && bounds[1]) {
-      const bStr = JSON.stringify(bounds);
-      if (prevBoundsRef.current !== bStr) {
-        map.fitBounds(bounds, { padding: [2, 2], maxZoom: 16 });
-        prevBoundsRef.current = bStr;
-      }
-    }
-  }, [bounds, map]);
-
-  return null;
-}
-
-function DemoCanvas({ mode, regions = [], selectedId, onSelect, showMask = false, appliedCategories = [] }) {
+function DemoCanvas({ mode, regions = [], selectedId, onSelect, showMask = true, appliedCategories = [] }) {
   const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current; if (!canvas) return;
-    canvas.width = DEMO_WIDTH; canvas.height = DEMO_HEIGHT; const ctx = canvas.getContext('2d');
-    drawDemoScene(ctx, mode !== 'before');
-    if (mode === 'change') {
-      if (showMask) {
-        ctx.fillStyle = 'rgba(7,10,19,.5)'; 
-        ctx.fillRect(0, 0, DEMO_WIDTH, DEMO_HEIGHT);
-      }
-      if (appliedCategories && appliedCategories.length > 0) {
-        const isAll = appliedCategories.includes('all') || ALL_CAT_IDS.every(id => appliedCategories.includes(id));
-        const filtered = regions.filter(region => {
-          if (isAll) return true;
-          if (appliedCategories.includes('roads') && region.type === 'ROAD CHANGE') return true;
-          if (appliedCategories.includes('construction') && (region.type === 'NEW CONSTRUCTION' || region.type === 'BUILDING CHANGE')) return true;
-          if (appliedCategories.includes('water') && (region.type === 'WATER EXTENT CHANGE' || region.type === 'RIVER CHANGE')) return true;
-          if (appliedCategories.includes('vegetation') && (region.type === 'VEGETATION LOSS' || region.type === 'FOREST CHANGE')) return true;
-          return false;
-        });
 
-        filtered.forEach((region) => { 
-          const strokeColor = getCategoryColor(region.type);
-          ctx.strokeStyle = region.id === selectedId ? '#ffffff' : strokeColor; 
-          ctx.lineWidth = region.id === selectedId ? 2.5 : 1.5; 
-          ctx.setLineDash([4, 4]);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.width = DEMO_WIDTH;
+    canvas.height = DEMO_HEIGHT;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    if (mode === 'before') {
+      drawDemoScene(ctx, false);
+    } else if (mode === 'after') {
+      drawDemoScene(ctx, true);
+    } else if (mode === 'change') {
+      drawDemoScene(ctx, true);
+      const activeRegions = regions.filter((r) => {
+        if (!appliedCategories || appliedCategories.length === 0) return false;
+        if (appliedCategories.includes('all')) return true;
+        const type = (r.type || '').toUpperCase();
+        if (appliedCategories.includes('roads') && (type.includes('ROAD') || type.includes('INFRASTRUCTURE'))) return true;
+        if (appliedCategories.includes('construction') && (type.includes('CONSTRUCTION') || type.includes('BUILDING'))) return true;
+        if (appliedCategories.includes('water') && (type.includes('WATER') || type.includes('RIVER'))) return true;
+        if (appliedCategories.includes('vegetation') && (type.includes('VEGETATION') || type.includes('FOREST'))) return true;
+        return false;
+      });
+
+      if (activeRegions.length > 0) {
+        ctx.strokeStyle = '#ff3333';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+
+        activeRegions.forEach((region) => {
+          const isSelected = region.id === selectedId;
+          ctx.strokeStyle = isSelected ? '#00ffcc' : (CATEGORY_COLORS[region.type] || '#ff3333');
+          ctx.lineWidth = isSelected ? 3 : 2;
           ctx.fillStyle = region.id === selectedId ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.03)';
-          const [minX, minY, maxX, maxY] = region.pixel_bbox;
+          const [minX, minY, maxX, maxY] = region.pixel_bbox || [0,0,10,10];
           ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
           ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
         });
       }
     }
   }, [mode, regions, selectedId, showMask, appliedCategories]);
-  return <canvas ref={canvasRef} className="demo-scene-canvas" onClick={() => { if (mode === 'change' && onSelect) onSelect(regions[0]); }} />;
+
+  return <canvas ref={canvasRef} className="demo-scene-canvas" onClick={() => { if (mode === 'change' && onSelect && regions.length > 0) onSelect(regions[0]); }} />;
 }
 
-export default function App() {
+/* ──────────────────────────────────────────────
+   MAIN APPLICATION CONTENT
+─────────────────────────────────────────────── */
+function AppContent() {
+  const [viewMode, setViewMode] = useState('landing');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [theme, setTheme] = useState('space');
   const [showRawClassification, setShowRawClassification] = useState(false);
@@ -254,7 +320,7 @@ export default function App() {
   const [isProvenanceExpanded, setIsProvenanceExpanded] = useState(false);
 
   const [locations, setLocations] = useState([]);
-  const [selectedLocId, setSelectedLocId] = useState('mixed');
+  const [selectedLocId, setSelectedLocId] = useState(''); // empty = no AOI selected initially
   const [locationQuery, setLocationQuery] = useState('');
   const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
   const locationDropdownRef = useRef(null);
@@ -330,7 +396,7 @@ export default function App() {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [scenesLoading, setScenesLoading] = useState(true);
+  const [scenesLoading, setScenesLoading] = useState(false);
 
   // Shared map view coordinates
   const [mapCenter, setMapCenter] = useState([26.1624, 91.7422]);
@@ -350,35 +416,28 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch locations and scenes on mount
+  // Fetch locations on mount without auto-selecting any location
   useEffect(() => {
     fetchInitialData();
   }, []);
 
   const fetchInitialData = async () => {
-    setScenesLoading(true);
     try {
       const locRes = await fetch(`${API_BASE}/locations`);
       if (locRes.ok) {
         const locData = await locRes.json();
-        setLocations(locData);
-        if (locData.length > 0) {
-          const defaultLoc = locData.find((loc) => loc.location_id === 'mixed') || locData[0];
-          setSelectedLocId(defaultLoc.location_id);
-          applyLocation(defaultLoc);
+        if (Array.isArray(locData)) {
+          setLocations(locData);
         }
       }
     } catch (err) {
       console.error('Fetch initial data error:', err);
-      setError('Offline Pipeline: Could not connect to local FastAPI backend.');
-    } finally {
-      setScenesLoading(false);
     }
   };
 
-  // Noise reduction filter: filter 200+ raw pixel detections into meaningful regions
+  // Filter 200+ raw pixel detections into meaningful regions
   const filterMeaningfulChanges = (changeList) => {
-    if (!changeList || changeList.length === 0) return [];
+    if (!Array.isArray(changeList) || changeList.length === 0) return [];
     return changeList.filter((c) => {
       const area = c.area_sqm || c.area_pixels || 0;
       const conf = c.confidence || 0.8;
@@ -387,17 +446,19 @@ export default function App() {
   };
 
   const applyLocation = async (loc) => {
+    if (!loc) return;
+    setScenesLoading(true);
     setSelectedLocId(loc.location_id);
     setSelectedChange(null);
     setSelectedCategories([]);
     setAppliedCategories([]);
-    setHasUserRunAnalysis(false); // Clean initial state for new location
+    setHasUserRunAnalysis(false);
     setPipelineResult(null);
     setSearchQuery('');
     setChanges([]);
     setSearchResults([]);
     
-    if (loc.center && loc.center.length === 2) {
+    if (loc.center && Array.isArray(loc.center) && loc.center.length === 2) {
       setMapCenter([loc.center[0], loc.center[1]]);
       setMapZoom(14);
     }
@@ -406,20 +467,18 @@ export default function App() {
       const res = await fetch(`${API_BASE}/scenes?location=${loc.location_id}`);
       if (res.ok) {
         const data = await res.json();
-        setScenes(data);
-        if (data.length >= 2) {
-          setBeforeSceneId(data[0].id);
-          setAfterSceneId(data[1].id);
-        } else if (data.length > 0) {
-          setBeforeSceneId(data[0].id);
-          setAfterSceneId(data[0].id);
+        if (Array.isArray(data)) {
+          setScenes(data);
+          if (data.length >= 2) {
+            setBeforeSceneId(data[0].id || data[0].scene_id || '');
+            setAfterSceneId(data[1].id || data[1].scene_id || '');
+          } else if (data.length > 0) {
+            setBeforeSceneId(data[0].id || data[0].scene_id || '');
+            setAfterSceneId(data[0].id || data[0].scene_id || '');
+          }
         }
       }
-    } catch (err) {
-      console.error('Fetch location scenes error:', err);
-    }
 
-    try {
       const chRes = await fetch(`${API_BASE}/changes?location=${loc.location_id}`);
       if (chRes.ok) {
         const existingChanges = await chRes.json();
@@ -430,7 +489,9 @@ export default function App() {
         }
       }
     } catch (err) {
-      // Silently ignore
+      console.error('Fetch location scenes error:', err);
+    } finally {
+      setScenesLoading(false);
     }
   };
 
@@ -438,6 +499,15 @@ export default function App() {
     setSelectedCategories([]);
     setAppliedCategories([]);
     setHasUserRunAnalysis(false);
+    
+    if (!locId) {
+      setSelectedLocId('');
+      setScenes([]);
+      setBeforeSceneId('');
+      setAfterSceneId('');
+      return;
+    }
+
     if (locId === CONCEPT_DEMO_ID) {
       setSelectedLocId(CONCEPT_DEMO_ID);
       setSelectedChange(null);
@@ -447,16 +517,11 @@ export default function App() {
       setSearchQuery('');
       return;
     }
-    const loc = locations.find(l => l.location_id === locId);
+
+    setSelectedLocId(locId);
+    const loc = Array.isArray(locations) ? locations.find(l => l && l.location_id === locId) : null;
     if (loc) {
       applyLocation(loc);
-    }
-  };
-
-  const handleLocationQueryChange = (query) => {
-    setLocationQuery(query);
-    if (query.trim().toLowerCase().includes('concept')) {
-      handleLocationChange(CONCEPT_DEMO_ID);
     }
   };
 
@@ -465,195 +530,147 @@ export default function App() {
     setLoading(true);
     setError(null);
     setSelectedChange(null);
-    setHasUserRunAnalysis(true); // User explicitly triggered analysis
+    setHasUserRunAnalysis(true);
     setSelectedCategories(['all']);
     setAppliedCategories(['all']);
+
     if (isConceptDemo) {
       window.setTimeout(() => {
-        const demoChanges = runDemoComparison();
-        const meaningful = filterMeaningfulChanges(demoChanges);
-        const breakdown = meaningful.reduce((acc, change) => ({ ...acc, [change.type]: (acc[change.type] || 0) + 1 }), {});
-        setPipelineResult({ changes: meaningful, changes_count: meaningful.length, breakdown, total_area_sqkm: 'demo' });
-        setChanges(meaningful); setSearchResults(meaningful); setLoading(false);
-      }, 350);
+        const demoResult = {
+          aligned_target_url: '/api/placeholder/demo_aligned.png',
+          change_mask_url: '/api/placeholder/demo_mask.png',
+          changes_detected: [
+            { id: 'c1', type: 'ROAD CHANGE', confidence: 0.94, pixel_bbox: [50, 75, 270, 85], is_demo: true, area_pixels: 220 },
+            { id: 'c2', type: 'NEW CONSTRUCTION', confidence: 0.88, pixel_bbox: [200, 30, 280, 80], is_demo: true, area_pixels: 400 },
+            { id: 'c3', type: 'BUILDING CHANGE', confidence: 0.91, pixel_bbox: [160, 140, 230, 200], is_demo: true, area_pixels: 420 },
+            { id: 'c4', type: 'WATER EXTENT CHANGE', confidence: 0.82, pixel_bbox: [75, 165, 125, 215], is_demo: true, area_pixels: 250 },
+          ]
+        };
+        setPipelineResult(demoResult);
+        setChanges(demoResult.changes_detected);
+        setSearchResults(demoResult.changes_detected);
+        setLoading(false);
+      }, 600);
       return;
     }
+
     try {
-      const res = await fetch(
-        `${API_BASE}/change-detect?before_id=${beforeSceneId}&after_id=${afterSceneId}&location_id=${selectedLocId}`,
-        { method: 'POST' }
-      );
-      if (!res.ok) {
-        throw new Error('Pipeline error during geospatial alignment / change detection.');
-      }
-      const data = await res.json();
-      const meaningful = filterMeaningfulChanges(data.changes || []);
-      setPipelineResult({
-        ...data,
-        changes: meaningful,
-        changes_count: meaningful.length
+      const res = await fetch(`${API_BASE}/run-pipeline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location_id: selectedLocId,
+          reference_scene_id: beforeSceneId,
+          target_scene_id: afterSceneId
+        })
       });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Failed to execute AI pipeline');
+      }
+
+      const data = await res.json();
+      setPipelineResult(data);
+      
+      const meaningful = filterMeaningfulChanges(data.changes_detected);
       setChanges(meaningful);
       setSearchResults(meaningful);
     } catch (err) {
+      console.error('Pipeline error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = async (queryText) => {
-    setSearchQuery(queryText);
-    setHasUserRunAnalysis(true); // User triggered search/analysis
-
-    let catId = null;
-    const lower = queryText.toLowerCase();
-    if (lower.includes('road')) catId = 'roads';
-    else if (lower.includes('build') || lower.includes('construct')) catId = 'construction';
-    else if (lower.includes('vegetat') || lower.includes('forest')) catId = 'vegetation';
-    else if (lower.includes('water') || lower.includes('river')) catId = 'water';
-
-    if (catId) {
-      setAppliedCategories([catId]);
-      setSelectedCategories([catId]);
-    } else {
-      setAppliedCategories(['all']);
-      setSelectedCategories(['all']);
-    }
-
-    if (!queryText.trim()) {
+  const handleSemanticSearch = async (e, overrideQuery) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const query = (overrideQuery !== undefined ? overrideQuery : searchQuery).trim();
+    if (!query) {
       setSearchResults(changes);
       return;
     }
 
-    if (isConceptDemo) {
-      const terms = lower.split(/\s+/);
-      setSearchResults(changes.filter((change) => terms.some((term) => change.type.toLowerCase().includes(term) || change.explanation.toLowerCase().includes(term))));
-      return;
-    }
-    
     try {
-      const res = await fetch(
-        `${API_BASE}/search?query=${encodeURIComponent(queryText)}&location=${selectedLocId}`,
-        { method: 'POST' }
-      );
-      const data = await res.json();
-      const meaningful = filterMeaningfulChanges(data);
-      setSearchResults(meaningful);
-    } catch (err) {
-      console.error('Search error', err);
-    }
-  };
-
-  const getChangeCoords = (change) => {
-    if (!change) return { lat: '26.1445', lon: '91.7362', str: '26.1445, 91.7362' };
-    let lat = null, lon = null;
-    if (change.centroid && Array.isArray(change.centroid) && change.centroid.length === 2 && change.centroid[0] !== 0) {
-      lat = change.centroid[0];
-      lon = change.centroid[1];
-    } else if (change.centroid_lonlat && Array.isArray(change.centroid_lonlat) && change.centroid_lonlat.length === 2 && change.centroid_lonlat[0] !== 0) {
-      lon = change.centroid_lonlat[0];
-      lat = change.centroid_lonlat[1];
-    } else if (change.geometry && change.geometry.coordinates && change.geometry.coordinates[0]) {
-      const coords = change.geometry.coordinates[0];
-      let lats = 0, lons = 0;
-      const count = coords.length > 1 ? coords.length - 1 : coords.length;
-      for (let i = 0; i < count; i++) {
-        lons += coords[i][0];
-        lats += coords[i][1];
+      const res = await fetch(`${API_BASE}/search?query=${encodeURIComponent(query)}${selectedLocId ? `&location=${selectedLocId}` : ''}`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setSearchResults(data);
+          return;
+        }
       }
-      lat = lats / count;
-      lon = lons / count;
-    } else if (selectedLoc && selectedLoc.center) {
-      lat = selectedLoc.center[0];
-      lon = selectedLoc.center[1];
+    } catch (err) {
+      console.warn('Semantic search endpoint error, using fallback matching:', err);
     }
 
-    if (lat !== null && lon !== null) {
-      const latFixed = Number(lat).toFixed(4);
-      const lonFixed = Number(lon).toFixed(4);
-      return { lat: latFixed, lon: lonFixed, str: `${latFixed}, ${lonFixed}` };
-    }
-    return { lat: '26.1445', lon: '91.7362', str: '26.1445, 91.7362' };
+    // Natural language intent fallback matching
+    const q = query.toLowerCase();
+    const filtered = changes.filter((c) => {
+      const type = (c.type || '').toLowerCase();
+      const desc = (c.description || c.explanation || '').toLowerCase();
+      
+      const hasBuildIntent = q.includes('build') || q.includes('construct') || q.includes('structure') || q.includes('house');
+      const hasRoadIntent = q.includes('road') || q.includes('highway') || q.includes('street') || q.includes('transport');
+      const hasVegIntent = q.includes('veg') || q.includes('forest') || q.includes('tree') || q.includes('canopy') || q.includes('green');
+      const hasWaterIntent = q.includes('water') || q.includes('river') || q.includes('lake') || q.includes('flood');
+
+      if (hasBuildIntent && (type.includes('construction') || type.includes('building'))) return true;
+      if (hasRoadIntent && type.includes('road')) return true;
+      if (hasVegIntent && (type.includes('veg') || type.includes('forest'))) return true;
+      if (hasWaterIntent && (type.includes('water') || type.includes('river'))) return true;
+
+      return type.includes(q) || desc.includes(q);
+    });
+
+    setSearchResults(filtered);
   };
 
-  const handleCopyCoordinates = () => {
-    if (!selectedChange) return;
-    const { str } = getChangeCoords(selectedChange);
-    if (str && navigator.clipboard) {
-      navigator.clipboard.writeText(str);
-      setCopiedCoord(true);
-      setTimeout(() => setCopiedCoord(false), 2000);
-    }
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchResults(changes);
   };
 
   const handleSelectChange = (change) => {
     setSelectedChange(change);
-    setIsProvenanceExpanded(false);
-    let catId = 'all';
-    if (change.type === 'ROAD CHANGE') catId = 'roads';
-    else if (change.type === 'NEW CONSTRUCTION' || change.type === 'BUILDING CHANGE') catId = 'construction';
-    else if (change.type === 'WATER EXTENT CHANGE' || change.type === 'RIVER CHANGE') catId = 'water';
-    else if (change.type === 'VEGETATION LOSS' || change.type === 'FOREST CHANGE') catId = 'vegetation';
-
-    if (!appliedCategories.includes(catId) && !appliedCategories.includes('all')) {
-      setAppliedCategories((prev) => [...prev, catId]);
-      setSelectedCategories((prev) => [...prev, catId]);
-    }
-
-    if (change.centroid && change.centroid.length === 2 && change.centroid[0] !== 0) {
-      setMapCenter([change.centroid[0], change.centroid[1]]);
-      setMapZoom(16);
-    } else if (change.geometry && change.geometry.coordinates && change.geometry.coordinates[0]) {
-      const coords = change.geometry.coordinates[0];
-      let latSum = 0, lonSum = 0;
-      const count = coords.length - 1;
-      for (let i = 0; i < count; i++) {
-        lonSum += coords[i][0];
-        latSum += coords[i][1];
-      }
-      setMapCenter([latSum / count, lonSum / count]);
+    if (change.center && Array.isArray(change.center) && change.center.length === 2) {
+      setMapCenter([change.center[0], change.center[1]]);
       setMapZoom(16);
     }
   };
 
+  const handleAnalystDecision = (changeId, decision) => {
+    setAnalystDecisions((prev) => ({
+      ...prev,
+      [changeId]: prev[changeId] === decision ? null : decision,
+    }));
+  };
+
   const handleZoomToChange = () => {
-    if (!selectedChange) return;
-    const coords = getChangeCoords(selectedChange);
-    if (coords.lat && coords.lon) {
-      setMapCenter([parseFloat(coords.lat), parseFloat(coords.lon)]);
+    if (selectedChange && selectedChange.center) {
+      setMapCenter([selectedChange.center[0], selectedChange.center[1]]);
       setMapZoom(17);
     }
   };
 
-  const getOverlayChanges = () => {
-    if (!appliedCategories || appliedCategories.length === 0) return [];
-    const isAll = appliedCategories.includes('all') || ALL_CAT_IDS.every(id => appliedCategories.includes(id));
-    
-    return searchResults.filter((c) => {
-      if (isAll) return true;
-      if (appliedCategories.includes('roads') && c.type === 'ROAD CHANGE') return true;
-      if (appliedCategories.includes('construction') && (c.type === 'NEW CONSTRUCTION' || c.type === 'BUILDING CHANGE')) return true;
-      if (appliedCategories.includes('water') && (c.type === 'WATER EXTENT CHANGE' || c.type === 'RIVER CHANGE' || c.type === 'WATER CHANGE')) return true;
-      if (appliedCategories.includes('vegetation') && (c.type === 'VEGETATION LOSS' || c.type === 'FOREST CHANGE')) return true;
-      return false;
-    });
-  };
-
-  const visibleOverlayChanges = getOverlayChanges();
-
-  const handleAnalystDecision = (changeId, status) => {
-    setAnalystDecisions((prev) => ({
-      ...prev,
-      [changeId]: prev[changeId] === status ? null : status
-    }));
-  };
+  const visibleOverlayChanges = searchResults.filter((r) => {
+    if (!appliedCategories || appliedCategories.length === 0) return false;
+    if (appliedCategories.includes('all')) return true;
+    const type = (r.type || '').toUpperCase();
+    if (appliedCategories.includes('roads') && (type.includes('ROAD') || type.includes('INFRASTRUCTURE'))) return true;
+    if (appliedCategories.includes('construction') && (type.includes('CONSTRUCTION') || type.includes('BUILDING'))) return true;
+    if (appliedCategories.includes('water') && (type.includes('WATER') || type.includes('RIVER'))) return true;
+    if (appliedCategories.includes('vegetation') && (type.includes('VEGETATION') || type.includes('FOREST'))) return true;
+    return false;
+  });
 
   const handleExport = (format) => {
     window.open(`${API_BASE}/export?format=${format}&location=${selectedLocId}`, '_blank');
   };
 
-  // Thin Dashed Color-Coded Geospatial Annotation Overlay Style
   const getGeoJsonStyle = (changeItem) => {
     const isSelected = selectedChange && (
       (selectedChange.id && selectedChange.id === changeItem.id) ||
@@ -662,13 +679,17 @@ export default function App() {
     );
     
     const catColor = getCategoryColor(changeItem.type);
-    const decision = analystDecisions[changeItem.id];
+    const analystDecision = analystDecisions[changeItem.id];
     let strokeColor = catColor;
-    if (decision === 'confirmed') strokeColor = '#10b981';
-    if (decision === 'rejected') strokeColor = '#ef4444';
     
+    if (analystDecision === 'confirmed') {
+      strokeColor = '#10b981';
+    } else if (analystDecision === 'rejected') {
+      strokeColor = '#ef4444';
+    }
+
     return {
-      color: isSelected ? '#ffffff' : strokeColor,
+      color: strokeColor,
       weight: isSelected ? 3.5 : 2.5,
       opacity: 1.0,
       dashArray: '6, 5',
@@ -677,30 +698,62 @@ export default function App() {
     };
   };
 
+  const hasLocationSelected = Boolean(selectedLocId);
   const isConceptDemo = selectedLocId === CONCEPT_DEMO_ID;
   const selectedLoc = isConceptDemo
     ? CONCEPT_DEMO_LOCATION
-    : locations.find(l => l.location_id === selectedLocId) || locations[0];
-  const aoiLocations = [CONCEPT_DEMO_LOCATION, ...locations];
+    : (Array.isArray(locations) ? locations.find(l => l && l.location_id === selectedLocId) : null) || null;
+  const aoiLocations = [CONCEPT_DEMO_LOCATION, ...(Array.isArray(locations) ? locations : [])];
+  
   const locationMatches = aoiLocations.filter((location) => {
-    const searchable = `${location.name} ${location.description || ''} ${location.location_id}`.toLowerCase();
-    return searchable.includes(locationQuery.trim().toLowerCase());
+    if (!location) return false;
+    const name = location.name || location.location_id || '';
+    const desc = location.description || '';
+    const id = location.location_id || '';
+    const query = (locationQuery || '').trim().toLowerCase();
+    const searchable = `${name} ${desc} ${id}`.toLowerCase();
+    return searchable.includes(query);
   });
 
-  const beforeScene = scenes.find(s => s.id === beforeSceneId);
-  const afterScene = scenes.find(s => s.id === afterSceneId);
+  const beforeScene = Array.isArray(scenes) ? scenes.find(s => s && (s.id === beforeSceneId || s.scene_id === beforeSceneId)) : null;
+  const afterScene = Array.isArray(scenes) ? scenes.find(s => s && (s.id === afterSceneId || s.scene_id === afterSceneId)) : null;
   const currentBounds = beforeScene?.bounds || selectedLoc?.leaflet_bounds || DEFAULT_BOUNDS;
-  const beforeImgUrl = beforeScene ? `${API_BASE}${beforeScene.image_url}` : null;
-  const afterImgUrl = afterScene ? `${API_BASE}${afterScene.image_url}` : null;
+  const beforeImgUrl = beforeScene?.image_url ? `${API_BASE}${beforeScene.image_url}` : null;
+  const afterImgUrl = afterScene?.image_url ? `${API_BASE}${afterScene.image_url}` : null;
   const alignedImgUrl = pipelineResult ? `${API_BASE}${pipelineResult.aligned_target_url}` : null;
-  const changeMaskUrl = pipelineResult ? `${API_BASE}${pipelineResult.change_mask_url}` : null;
+
+  if (viewMode === 'landing') {
+    return (
+      <>
+        <div className="space-theme-starfield">
+          <div className="starfield-stars" />
+        </div>
+        <LandingPage
+          onLaunchWorkstation={() => setViewMode('workstation')}
+          onSelectAOI={(locId) => {
+            handleLocationChange(locId);
+            setViewMode('workstation');
+          }}
+          locations={locations}
+        />
+      </>
+    );
+  }
 
   return (
     <>
       {/* Header */}
       <header>
         <div className="header-left">
-          {/* Menu Toggle Button */}
+          <button 
+            className="back-to-home-btn"
+            onClick={() => setViewMode('landing')}
+            title="Return to Overview / Homepage"
+          >
+            <ArrowLeft size={14} />
+            <span>Overview</span>
+          </button>
+
           <button 
             className="menu-toggle-btn"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -719,13 +772,11 @@ export default function App() {
         </div>
 
         <div className="header-right">
-          {/* System Status Indicator */}
           <div className="health-pill">
             <span className="health-pulse-dot" />
             <span>SYSTEM ONLINE</span>
           </div>
 
-          {/* Export Actions */}
           {(pipelineResult || changes.length > 0) && (
             <div className="export-btn-group">
               <button className="export-btn" onClick={() => handleExport('geojson')} title="Export GeoJSON">
@@ -748,7 +799,7 @@ export default function App() {
       {/* Main Workstation Layout */}
       <div className="workstation-flex-layout">
         
-        {/* Responsive Collapsible Sidebar */}
+        {/* Sidebar */}
         <div className={`sidebar-flex-panel ${!isSidebarOpen ? 'collapsed' : ''}`}>
           <div className="sidebar-header">
             <span className="sidebar-title">
@@ -760,7 +811,6 @@ export default function App() {
             </button>
           </div>
 
-          {/* SECTION 1: FILTERS FIRST */}
           <div className="sidebar-section">
             <div className="sidebar-section-title">Filters</div>
 
@@ -776,7 +826,7 @@ export default function App() {
                   <input
                     value={locationQuery}
                     onChange={(event) => {
-                      handleLocationQueryChange(event.target.value);
+                      setLocationQuery(event.target.value);
                       setLocationDropdownOpen(true);
                     }}
                     onFocus={() => setLocationDropdownOpen(true)}
@@ -790,7 +840,7 @@ export default function App() {
                     {locationMatches.length === 0 ? (
                       <div style={{ padding: 8, fontSize: '0.72rem', color: '#666' }}>No location found.</div>
                     ) : (
-                      locationMatches.map(loc => (
+                      locationMatches.map(loc => loc && (
                         <div
                           key={loc.location_id}
                           className={`location-dropdown-item ${selectedLocId === loc.location_id ? 'active' : ''}`}
@@ -800,10 +850,10 @@ export default function App() {
                             setLocationDropdownOpen(false);
                           }}
                         >
-                          <span style={{ fontSize: '0.85rem' }}>{loc.badge_icon || '📍'}</span>
+                          <MapPin size={13} style={{ color: selectedLocId === loc.location_id ? 'var(--accent-cyan)' : 'var(--text-muted)', flexShrink: 0 }} />
                           <div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#f5f5f5' }}>{loc.name}</div>
-                            <div style={{ fontSize: '0.62rem', color: '#a0a0a0' }}>{loc.category}</div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#f5f5f5' }}>{loc.name || loc.location_id}</div>
+                            <div style={{ fontSize: '0.62rem', color: '#a0a0a0' }}>{loc.category || 'Observation Zone'}</div>
                           </div>
                         </div>
                       ))
@@ -820,9 +870,15 @@ export default function App() {
                 className="select-box"
                 value={beforeSceneId}
                 onChange={(e) => setBeforeSceneId(e.target.value)}
-                disabled={isConceptDemo}
+                disabled={isConceptDemo || !hasLocationSelected}
               >
-                {isConceptDemo ? <option>2024-02-10 (Demo)</option> : scenes.map(s => <option key={s.id} value={s.id}>{s.date}</option>)}
+                {isConceptDemo ? (
+                  <option>2024-02-10 (Demo)</option>
+                ) : Array.isArray(scenes) && scenes.length > 0 ? (
+                  scenes.map(s => <option key={s.id || s.scene_id} value={s.id || s.scene_id}>{s.date}</option>)
+                ) : (
+                  <option>Select AOI first</option>
+                )}
               </select>
             </div>
 
@@ -833,45 +889,23 @@ export default function App() {
                 className="select-box"
                 value={afterSceneId}
                 onChange={(e) => setAfterSceneId(e.target.value)}
-                disabled={isConceptDemo}
+                disabled={isConceptDemo || !hasLocationSelected}
               >
-                {isConceptDemo ? <option>2024-10-22 (Demo)</option> : scenes.map(s => <option key={s.id} value={s.id}>{s.date}</option>)}
+                {isConceptDemo ? (
+                  <option>2024-10-22 (Demo)</option>
+                ) : Array.isArray(scenes) && scenes.length > 0 ? (
+                  scenes.map(s => <option key={s.id || s.scene_id} value={s.id || s.scene_id}>{s.date}</option>)
+                ) : (
+                  <option>Select AOI first</option>
+                )}
               </select>
-            </div>
-          </div>
-
-          {/* SECTION 2: SEARCH IMAGERY & QUICK SEARCHES */}
-          <div className="sidebar-section">
-            <div className="sidebar-section-title">Search Imagery</div>
-            <div className="search-input-box">
-              <Search size={13} style={{ color: '#a0a0a0' }} />
-              <input 
-                type="text" 
-                placeholder="Search satellite imagery..." 
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-              />
-            </div>
-
-            {/* Quick Searches */}
-            <div className="sidebar-section-title" style={{ marginTop: 10 }}>Quick Searches</div>
-            <div className="quick-pills-grid">
-              {['New Buildings', 'Road Development', 'Vegetation Loss', 'Water Change'].map(query => (
-                <button 
-                  key={query} 
-                  className="quick-pill-btn"
-                  onClick={() => handleSearch(query)}
-                >
-                  {query}
-                </button>
-              ))}
             </div>
 
             {/* Search & Run Analytics Button */}
             <button 
               className="run-analytics-btn"
               onClick={handleRunPipeline}
-              disabled={loading}
+              disabled={loading || (!hasLocationSelected && !isConceptDemo)}
             >
               {loading ? (
                 <>
@@ -885,6 +919,58 @@ export default function App() {
                 </>
               )}
             </button>
+          </div>
+
+          {/* Semantic Intelligence Search Section */}
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">
+              SEMANTIC INTELLIGENCE SEARCH
+            </div>
+            
+            <form onSubmit={handleSemanticSearch} className="search-input-box" style={{ marginBottom: 8 }}>
+              <Search size={13} style={{ color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder="Search e.g. new construction, road..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (!e.target.value.trim()) {
+                    setSearchResults(changes);
+                  }
+                }}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2 }}
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </form>
+
+            <div className="quick-pills-grid">
+              {[
+                { label: 'New Construction', q: 'New Construction' },
+                { label: 'Road Change', q: 'Road Change' },
+                { label: 'Vegetation Loss', q: 'Vegetation Loss' },
+                { label: 'Water Body', q: 'Water Extent' },
+              ].map((pill) => (
+                <button
+                  key={pill.label}
+                  type="button"
+                  className={`quick-pill-btn ${searchQuery === pill.q ? 'active' : ''}`}
+                  onClick={() => {
+                    setSearchQuery(pill.q);
+                    handleSemanticSearch(null, pill.q);
+                  }}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Results Summary Section */}
@@ -902,7 +988,7 @@ export default function App() {
                   No analysis run yet.
                 </div>
                 <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.4 }}>
-                  Search for imagery or select a quick search to begin analysis.
+                  Select a location to begin satellite analysis.
                 </div>
               </div>
             </div>
@@ -926,9 +1012,11 @@ export default function App() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 600 }}>
                       <span>{change.type}</span>
-                      <span style={{ color: analystDecisions[change.id] === 'confirmed' ? '#10b981' : analystDecisions[change.id] === 'rejected' ? '#ef4444' : 'var(--confidence-green)' }}>
-                        {analystDecisions[change.id] ? analystDecisions[change.id].toUpperCase() : `${Math.round((change.confidence || 0.9) * 100)}%`}
-                      </span>
+                      {analystDecisions[change.id] && (
+                        <span style={{ color: analystDecisions[change.id] === 'confirmed' ? '#10b981' : '#ef4444', fontSize: '0.66rem', fontWeight: 700 }}>
+                          {analystDecisions[change.id].toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: '0.66rem', color: 'var(--text-secondary)', marginTop: 2 }}>
                       {change.is_demo ? `${change.area_pixels} demo px` : change.area_sqm ? `${change.area_sqm.toLocaleString()} m²` : `${change.area_pixels} px`}
@@ -941,7 +1029,7 @@ export default function App() {
             <div className="sidebar-section">
               <div className="sidebar-section-title">CHANGE RESULTS</div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', padding: '10px 0' }}>
-                No changes detected for the current search criteria.
+                No changes detected for the current criteria.
               </div>
             </div>
           )}
@@ -955,12 +1043,18 @@ export default function App() {
             <div className="pane-header-bar">
               <div className="scene-label-badge">
                 <span className="tag">BEFORE</span>
-                <span>{isConceptDemo ? '2024-02-10' : beforeScene ? beforeScene.date : '2024-02-10'}</span>
+                <span>{isConceptDemo ? '2024-02-10' : beforeScene ? beforeScene.date : (hasLocationSelected ? '—' : 'Select AOI')}</span>
               </div>
             </div>
 
             <div className="map-container-box">
-              {isConceptDemo ? (
+              {!hasLocationSelected ? (
+                <div className="map-placeholder no-aoi-placeholder">
+                  <Crosshair size={28} style={{ color: '#404040', marginBottom: 12 }} />
+                  <span className="placeholder-title">Select a location to load imagery</span>
+                  <span className="placeholder-sub">Use the Search &amp; Control panel to select a Target Location / AOI</span>
+                </div>
+              ) : isConceptDemo ? (
                 <DemoCanvas mode="before" />
               ) : scenesLoading ? (
                 <div className="map-placeholder">
@@ -984,8 +1078,8 @@ export default function App() {
                 </MapContainer>
               ) : (
                 <div className="map-placeholder">
-                  <AlertCircle size={16} style={{ color: '#ef4444', marginBottom: 6 }} />
-                  <span>SATELLITE SCENE UNAVAILABLE</span>
+                  <AlertCircle size={16} style={{ color: '#38bdf8', marginBottom: 6 }} />
+                  <span>Imagery unavailable for this selection</span>
                 </div>
               )}
             </div>
@@ -996,7 +1090,7 @@ export default function App() {
             <div className="pane-header-bar">
               <div className="scene-label-badge">
                 <span className="tag">AFTER</span>
-                <span>{isConceptDemo ? '2024-10-22' : afterScene ? afterScene.date : '2024-10-22'}</span>
+                <span>{isConceptDemo ? '2024-10-22' : afterScene ? afterScene.date : (hasLocationSelected ? '—' : 'Select AOI')}</span>
               </div>
 
               {/* Multi-Select Control Popover */}
@@ -1079,7 +1173,13 @@ export default function App() {
             </div>
 
             <div className="map-container-box">
-              {isConceptDemo ? (
+              {!hasLocationSelected ? (
+                <div className="map-placeholder no-aoi-placeholder">
+                  <Crosshair size={28} style={{ color: '#404040', marginBottom: 12 }} />
+                  <span className="placeholder-title">Select a location to load imagery</span>
+                  <span className="placeholder-sub">Use the Search &amp; Control panel to select a Target Location / AOI</span>
+                </div>
+              ) : isConceptDemo ? (
                 <DemoCanvas 
                   mode="change" 
                   regions={searchResults} 
@@ -1120,13 +1220,13 @@ export default function App() {
                 </MapContainer>
               ) : (
                 <div className="map-placeholder">
-                  <AlertCircle size={16} style={{ color: '#ef4444', marginBottom: 6 }} />
-                  <span>SATELLITE SCENE UNAVAILABLE</span>
+                  <AlertCircle size={16} style={{ color: '#38bdf8', marginBottom: 6 }} />
+                  <span>Imagery unavailable for this selection</span>
                 </div>
               )}
             </div>
 
-            {/* Dedicated Legend Strip at Bottom of AFTER Pane */}
+            {/* Dedicated Legend Strip */}
             {appliedCategories.length > 0 && (
               <div className="pane-footer-legend-bar">
                 <span className="legend-bar-title">LEGEND:</span>
@@ -1161,114 +1261,122 @@ export default function App() {
           </div>
         </div>
 
-        {/* PANE 3: DEDICATED RIGHT-SIDE CHANGE DETAILS PANEL */}
+        {/* Change Details Panel */}
         {selectedChange && (
           <div className="right-details-flex-panel">
             <div className="details-panel-header">
               <span className="details-panel-title">
-                <Eye size={13} />
-                <span>CHANGE DETAILS</span>
+                <Info size={13} />
+                <span>FEATURE EVIDENCE DOSSIER</span>
               </span>
               <button 
-                className="close-panel-btn"
+                className="close-details-btn" 
                 onClick={() => setSelectedChange(null)}
-                title="Close Details Panel"
+                title="Close dossier"
               >
-                <X size={14} />
-                <span>CLOSE</span>
+                <X size={13} />
               </button>
             </div>
 
-            <div className="details-panel-content-body">
-              <div className="card-header-row">
-                <span className="card-tag">CHANGE DETECTED</span>
+            <div className="details-panel-body">
+              <div className="dossier-header-strip">
+                <div className="dossier-type-title">{selectedChange.type}</div>
+                <div className="dossier-id-badge">ID: {selectedChange.id || 'EV-DET-01'}</div>
               </div>
 
-              <div className="card-title">
-                {selectedChange.type === 'NEW CONSTRUCTION' ? 'New Construction' : 
-                 selectedChange.type === 'ROAD CHANGE' ? 'Road Change' :
-                 selectedChange.type === 'WATER EXTENT CHANGE' ? 'Water Body Change' :
-                 selectedChange.type === 'VEGETATION LOSS' ? 'Vegetation Loss' : selectedChange.type}
-              </div>
-
-              <div className="card-stats-grid">
-                <span className="stat-pill-green">
-                  Confidence: {Math.round((selectedChange.confidence || 0.92) * 100)}%
-                </span>
-                <span className="stat-pill-gray">
-                  Area: {selectedChange.is_demo 
-                    ? `${selectedChange.area_pixels} demo px` 
-                    : selectedChange.area_sqm 
+              <div className="dossier-grid">
+                <div className="dossier-metric-card">
+                  <span className="metric-label">SURFACE AREA</span>
+                  <span className="metric-value">
+                    {selectedChange.is_demo 
+                      ? `${selectedChange.area_pixels} px` 
+                      : selectedChange.area_sqm 
                       ? `${selectedChange.area_sqm.toLocaleString()} m²` 
-                      : `${selectedChange.area_pixels} px`}
-                </span>
+                      : `${selectedChange.area_pixels || 450} px`}
+                  </span>
+                </div>
+                <div className="dossier-metric-card">
+                  <span className="metric-label">STATUS</span>
+                  <span className="metric-value" style={{ 
+                    color: analystDecisions[selectedChange.id] === 'confirmed' ? '#10b981' : analystDecisions[selectedChange.id] === 'rejected' ? '#ef4444' : '#38bdf8',
+                    fontSize: '0.78rem' 
+                  }}>
+                    {analystDecisions[selectedChange.id] ? analystDecisions[selectedChange.id].toUpperCase() : 'PENDING REVIEW'}
+                  </span>
+                </div>
               </div>
 
-              {/* CHANGE LOCATION Section */}
+              {/* LATITUDE & LONGITUDE Section */}
               {(() => {
-                const coords = getChangeCoords(selectedChange);
+                const coords = getChangeCoordinates(selectedChange, currentBounds);
                 return (
-                  <div className="card-location-box">
-                    <div className="location-box-header">
-                      <Crosshair size={12} style={{ color: '#ffffff' }} />
-                      <span>CHANGE LOCATION</span>
+                  <>
+                    <div className="dossier-grid" style={{ marginTop: 2 }}>
+                      <div className="dossier-metric-card">
+                        <span className="metric-label">LATITUDE</span>
+                        <span className="metric-value cyan" style={{ fontSize: '0.82rem', fontFamily: 'monospace' }}>
+                          {coords.latStr}
+                        </span>
+                      </div>
+                      <div className="dossier-metric-card">
+                        <span className="metric-label">LONGITUDE</span>
+                        <span className="metric-value cyan" style={{ fontSize: '0.82rem', fontFamily: 'monospace' }}>
+                          {coords.lonStr}
+                        </span>
+                      </div>
                     </div>
-                    <div className="coords-display-row">
-                      <div><span className="coord-lbl">Latitude:</span> <strong>{coords.lat}°</strong></div>
-                      <div><span className="coord-lbl">Longitude:</span> <strong>{coords.lon}°</strong></div>
-                    </div>
-                    <button className="copy-coords-btn" onClick={handleCopyCoordinates}>
-                      {copiedCoord ? <CheckCheck size={12} /> : <Copy size={12} />}
-                      <span>{copiedCoord ? 'COPIED!' : 'COPY COORDINATES'}</span>
+
+                    <button 
+                      className="copy-coords-btn"
+                      style={{ marginTop: 2 }}
+                      onClick={() => {
+                        if (coords.latVal !== null && coords.lonVal !== null) {
+                          navigator.clipboard.writeText(`${coords.latVal.toFixed(6)}, ${coords.lonVal.toFixed(6)}`);
+                        }
+                        setCopiedCoord(true);
+                        setTimeout(() => setCopiedCoord(false), 2000);
+                      }}
+                    >
+                      {copiedCoord ? <CheckCheck size={12} style={{ color: '#10b981' }} /> : <Copy size={12} />}
+                      <span>{copiedCoord ? 'COORDINATES COPIED' : 'COPY LATITUDE & LONGITUDE'}</span>
                     </button>
-                  </div>
+                  </>
                 );
               })()}
 
-              <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
-                First Observed: <strong>{selectedChange.dates?.[1] || '2025'}</strong> • Source: <strong>Sentinel-2</strong>
-              </div>
-
-              {selectedChange.explanation && (
-                <div className="card-explanation">
-                  "{selectedChange.explanation}"
+              {(selectedChange.explanation || selectedChange.description) && (
+                <div style={{
+                  padding: '8px 10px',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 6,
+                  fontSize: '0.72rem',
+                  color: 'var(--text-secondary)',
+                  fontStyle: 'italic',
+                  lineHeight: 1.4
+                }}>
+                  "{selectedChange.explanation || selectedChange.description}"
                 </div>
               )}
 
-              {/* Expandable Provenance Metadata */}
-              <button 
-                className="provenance-toggle-btn"
-                onClick={() => setIsProvenanceExpanded(!isProvenanceExpanded)}
-              >
-                <span>GEOSPATIAL PROVENANCE</span>
-                {isProvenanceExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              </button>
-
-              {isProvenanceExpanded && (
-                <div className="provenance-details-box">
-                  <div className="provenance-row"><span>Source:</span><span>Sentinel-2 MSI Level-2A</span></div>
-                  <div className="provenance-row"><span>Resolution:</span><span>10.0 m/pixel</span></div>
-                  <div className="provenance-row"><span>Processing:</span><span>Alignment → Cloud Mask → Change Detection</span></div>
-                  <div className="provenance-row"><span>Model Engine:</span><span>Deep Semantic Segmenter</span></div>
+              <div className="analyst-action-strip">
+                <span className="analyst-label font-mono">ANALYST DECISION:</span>
+                <div className="analyst-btn-row">
+                  <button 
+                    className={`analyst-btn confirm ${analystDecisions[selectedChange.id] === 'confirmed' ? 'active' : ''}`}
+                    onClick={() => handleAnalystDecision(selectedChange.id, 'confirmed')}
+                  >
+                    <CheckCircle2 size={12} />
+                    <span>CONFIRM</span>
+                  </button>
+                  <button 
+                    className={`analyst-btn reject ${analystDecisions[selectedChange.id] === 'rejected' ? 'active' : ''}`}
+                    onClick={() => handleAnalystDecision(selectedChange.id, 'rejected')}
+                  >
+                    <Ban size={12} />
+                    <span>REJECT</span>
+                  </button>
                 </div>
-              )}
-
-              {/* Analyst Review Controls ([ CONFIRM ] / [ REJECT ]) */}
-              <div className="analyst-review-row">
-                <button 
-                  className={`analyst-btn confirm ${analystDecisions[selectedChange.id] === 'confirmed' ? 'active' : ''}`}
-                  onClick={() => handleAnalystDecision(selectedChange.id, 'confirmed')}
-                >
-                  <Check size={12} />
-                  <span>CONFIRM</span>
-                </button>
-                <button 
-                  className={`analyst-btn reject ${analystDecisions[selectedChange.id] === 'rejected' ? 'active' : ''}`}
-                  onClick={() => handleAnalystDecision(selectedChange.id, 'rejected')}
-                >
-                  <Ban size={12} />
-                  <span>REJECT</span>
-                </button>
               </div>
 
               <div className="card-actions-row">
@@ -1288,5 +1396,16 @@ export default function App() {
 
       </div>
     </>
+  );
+}
+
+/* ──────────────────────────────────────────────
+   EXPORTED WORKSTATION APP WITH ERROR BOUNDARY
+─────────────────────────────────────────────── */
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
   );
 }

@@ -1,0 +1,344 @@
+{
+  "version": "v2.0",
+  "random_seed": 42,
+  "feature_names": [
+    "R",
+    "G",
+    "B",
+    "NIR",
+    "NDVI",
+    "NDWI"
+  ],
+  "class_map": {
+    "0": "Bare land",
+    "1": "Vegetation",
+    "2": "Water",
+    "3": "Road",
+    "4": "Building"
+  },
+  "label_config": {
+    "version": "v2.0",
+    "random_seed": 42,
+    "epsilon": 1e-05,
+    "class_map": {
+      "0": "Bare land",
+      "1": "Vegetation",
+      "2": "Water",
+      "3": "Road",
+      "4": "Building"
+    },
+    "thresholds": {
+      "water_ndwi_min": 0.15,
+      "vegetation_ndvi_min": 0.25,
+      "building_r_min": 150,
+      "building_nir_min": 130,
+      "building_ndvi_max": 0.1,
+      "road_grey_diff_max": 15,
+      "road_r_min": 60,
+      "road_r_max": 150
+    },
+    "priority_order": [
+      "Water",
+      "Vegetation",
+      "Building",
+      "Road",
+      "Bare land"
+    ],
+    "note": "Labels are algorithmically derived via spectral thresholds applied to real Sentinel-2 BOA reflectance. They are NOT human-annotated. Classifier comparisons are valid (same labels, same test set), but absolute accuracy numbers reflect agreement with spectral rules, not manually verified ground truth."
+  },
+  "scenes": [
+    {
+      "scene_id": "vit_ap_ref",
+      "split": "train",
+      "location": "VIT-AP University, Amaravati, Andhra Pradesh",
+      "date": "2021-03-06",
+      "sensor": "Sentinel-2 MSI L2A (S2B_44QMD_20210306_2_L2A)",
+      "dominant_cover": "mixed: campus built-up, bare land, vegetation",
+      "source_file": "data/locations/vit_ap/reference/scene_20210306.tif",
+      "features_file": "processed/vit_ap_ref_features.npy",
+      "labels_file": "labels/vit_ap_ref_labels.npy",
+      "height": 512,
+      "width": 512,
+      "n_pixels": 262144,
+      "class_distribution": {
+        "Bare land": {
+          "class_id": 0,
+          "count": 58311,
+          "pct": 22.24
+        },
+        "Vegetation": {
+          "class_id": 1,
+          "count": 187420,
+          "pct": 71.5
+        },
+        "Water": {
+          "class_id": 2,
+          "count": 10217,
+          "pct": 3.9
+        },
+        "Road": {
+          "class_id": 3,
+          "count": 1433,
+          "pct": 0.55
+        },
+        "Building": {
+          "class_id": 4,
+          "count": 4763,
+          "pct": 1.82
+        }
+      }
+    },
+    {
+      "scene_id": "forest_ref",
+      "split": "train",
+      "location": "Garbhanga Forest Reserve, Assam",
+      "date": "2024-02-10",
+      "sensor": "Sentinel-2 MSI L2A",
+      "dominant_cover": "dense vegetation / forest canopy",
+      "source_file": "data/locations/forest/reference/scene_20240210.tif",
+      "features_file": "processed/forest_ref_features.npy",
+      "labels_file": "labels/forest_ref_labels.npy",
+      "height": 312,
+      "width": 360,
+      "n_pixels": 112320,
+      "class_distribution": {
+        "Bare land": {
+          "class_id": 0,
+          "count": 17413,
+          "pct": 15.5
+        },
+        "Vegetation": {
+          "class_id": 1,
+          "count": 19100,
+          "pct": 17.0
+        },
+        "Water": {
+          "class_id": 2,
+          "count": 1619,
+          "pct": 1.44
+        },
+        "Road": {
+          "class_id": 3,
+          "count": 70455,
+          "pct": 62.73
+        },
+        "Building": {
+          "class_id": 4,
+          "count": 3733,
+          "pct": 3.32
+        }
+      }
+    },
+    {
+      "scene_id": "river_ref_2023",
+      "split": "train",
+      "location": "Brahmaputra River, Assam (2023 acquisition)",
+      "date": "2023-01-21",
+      "sensor": "Sentinel-2 MSI L2A",
+      "dominant_cover": "water, sandbar (bare land)",
+      "source_file": "data/locations/river/reference/scene_20230121.tif",
+      "features_file": "processed/river_ref_2023_features.npy",
+      "labels_file": "labels/river_ref_2023_labels.npy",
+      "height": 512,
+      "width": 512,
+      "n_pixels": 262144,
+      "class_distribution": {
+        "Bare land": {
+          "class_id": 0,
+          "count": 26280,
+          "pct": 10.03
+        },
+        "Vegetation": {
+          "class_id": 1,
+          "count": 10088,
+          "pct": 3.85
+        },
+        "Water": {
+          "class_id": 2,
+          "count": 56228,
+          "pct": 21.45
+        },
+        "Road": {
+          "class_id": 3,
+          "count": 162784,
+          "pct": 62.1
+        },
+        "Building": {
+          "class_id": 4,
+          "count": 6764,
+          "pct": 2.58
+        }
+      }
+    },
+    {
+      "scene_id": "wetland_ref",
+      "split": "train",
+      "location": "Deepor Beel Ramsar Wetland, Assam",
+      "date": "2024-02-10",
+      "sensor": "Sentinel-2 MSI L2A",
+      "dominant_cover": "open water, aquatic macrophytes",
+      "source_file": "data/locations/wetland/reference/scene_20240210.tif",
+      "features_file": "processed/wetland_ref_features.npy",
+      "labels_file": "labels/wetland_ref_labels.npy",
+      "height": 300,
+      "width": 300,
+      "n_pixels": 90000,
+      "class_distribution": {
+        "Bare land": {
+          "class_id": 0,
+          "count": 14571,
+          "pct": 16.19
+        },
+        "Vegetation": {
+          "class_id": 1,
+          "count": 8520,
+          "pct": 9.47
+        },
+        "Water": {
+          "class_id": 2,
+          "count": 12550,
+          "pct": 13.94
+        },
+        "Road": {
+          "class_id": 3,
+          "count": 48980,
+          "pct": 54.42
+        },
+        "Building": {
+          "class_id": 4,
+          "count": 5379,
+          "pct": 5.98
+        }
+      }
+    },
+    {
+      "scene_id": "urban_ref",
+      "split": "validation",
+      "location": "Dispur, Guwahati (urban expansion corridor)",
+      "date": "2024-02-10",
+      "sensor": "Sentinel-2 MSI L2A",
+      "dominant_cover": "urban: road, building, bare land",
+      "source_file": "data/locations/urban/reference/scene_20240210.tif",
+      "features_file": "processed/urban_ref_features.npy",
+      "labels_file": "labels/urban_ref_labels.npy",
+      "height": 352,
+      "width": 332,
+      "n_pixels": 116864,
+      "class_distribution": {
+        "Bare land": {
+          "class_id": 0,
+          "count": 16088,
+          "pct": 13.77
+        },
+        "Vegetation": {
+          "class_id": 1,
+          "count": 18603,
+          "pct": 15.92
+        },
+        "Water": {
+          "class_id": 2,
+          "count": 878,
+          "pct": 0.75
+        },
+        "Road": {
+          "class_id": 3,
+          "count": 80216,
+          "pct": 68.64
+        },
+        "Building": {
+          "class_id": 4,
+          "count": 1079,
+          "pct": 0.92
+        }
+      }
+    },
+    {
+      "scene_id": "river_ref_2024",
+      "split": "validation",
+      "location": "Brahmaputra River, Assam (2024 acquisition)",
+      "date": "2024-02-10",
+      "sensor": "Sentinel-2 MSI L2A",
+      "dominant_cover": "water, sandbar, riverside vegetation",
+      "source_file": "data/locations/river/reference/scene_20240210.tif",
+      "features_file": "processed/river_ref_2024_features.npy",
+      "labels_file": "labels/river_ref_2024_labels.npy",
+      "height": 280,
+      "width": 420,
+      "n_pixels": 117600,
+      "class_distribution": {
+        "Bare land": {
+          "class_id": 0,
+          "count": 18718,
+          "pct": 15.92
+        },
+        "Vegetation": {
+          "class_id": 1,
+          "count": 11392,
+          "pct": 9.69
+        },
+        "Water": {
+          "class_id": 2,
+          "count": 26636,
+          "pct": 22.65
+        },
+        "Road": {
+          "class_id": 3,
+          "count": 57076,
+          "pct": 48.53
+        },
+        "Building": {
+          "class_id": 4,
+          "count": 3778,
+          "pct": 3.21
+        }
+      }
+    },
+    {
+      "scene_id": "vit_ap_tgt",
+      "split": "test",
+      "location": "VIT-AP University, Amaravati (5-year later scene)",
+      "date": "2026-03-05",
+      "sensor": "Sentinel-2 MSI L2A (S2C_44QMD_20260305_0_L2A)",
+      "dominant_cover": "expanded built-up, less bare land",
+      "source_file": "data/locations/vit_ap/target/scene_20260305.tif",
+      "features_file": "processed/vit_ap_tgt_features.npy",
+      "labels_file": "labels/vit_ap_tgt_labels.npy",
+      "height": 512,
+      "width": 512,
+      "n_pixels": 262144,
+      "class_distribution": {
+        "Bare land": {
+          "class_id": 0,
+          "count": 108888,
+          "pct": 41.54
+        },
+        "Vegetation": {
+          "class_id": 1,
+          "count": 121421,
+          "pct": 46.32
+        },
+        "Water": {
+          "class_id": 2,
+          "count": 10074,
+          "pct": 3.84
+        },
+        "Road": {
+          "class_id": 3,
+          "count": 8010,
+          "pct": 3.06
+        },
+        "Building": {
+          "class_id": 4,
+          "count": 13751,
+          "pct": 5.25
+        }
+      }
+    }
+  ],
+  "split_pixel_counts": {
+    "train": 726608,
+    "validation": 234464,
+    "test": 262144
+  },
+  "total_pixels": 1223216
+}

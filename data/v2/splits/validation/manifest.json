@@ -1,0 +1,116 @@
+{
+  "split": "validation",
+  "n_pixels": 234464,
+  "n_scenes": 2,
+  "class_distribution": {
+    "Bare land": {
+      "class_id": 0,
+      "count": 34806,
+      "pct": 14.84
+    },
+    "Vegetation": {
+      "class_id": 1,
+      "count": 29995,
+      "pct": 12.79
+    },
+    "Water": {
+      "class_id": 2,
+      "count": 27514,
+      "pct": 11.73
+    },
+    "Road": {
+      "class_id": 3,
+      "count": 137292,
+      "pct": 58.56
+    },
+    "Building": {
+      "class_id": 4,
+      "count": 4857,
+      "pct": 2.07
+    }
+  },
+  "scenes": [
+    {
+      "scene_id": "urban_ref",
+      "split": "validation",
+      "location": "Dispur, Guwahati (urban expansion corridor)",
+      "date": "2024-02-10",
+      "sensor": "Sentinel-2 MSI L2A",
+      "dominant_cover": "urban: road, building, bare land",
+      "source_file": "data/locations/urban/reference/scene_20240210.tif",
+      "features_file": "processed/urban_ref_features.npy",
+      "labels_file": "labels/urban_ref_labels.npy",
+      "height": 352,
+      "width": 332,
+      "n_pixels": 116864,
+      "class_distribution": {
+        "Bare land": {
+          "class_id": 0,
+          "count": 16088,
+          "pct": 13.77
+        },
+        "Vegetation": {
+          "class_id": 1,
+          "count": 18603,
+          "pct": 15.92
+        },
+        "Water": {
+          "class_id": 2,
+          "count": 878,
+          "pct": 0.75
+        },
+        "Road": {
+          "class_id": 3,
+          "count": 80216,
+          "pct": 68.64
+        },
+        "Building": {
+          "class_id": 4,
+          "count": 1079,
+          "pct": 0.92
+        }
+      }
+    },
+    {
+      "scene_id": "river_ref_2024",
+      "split": "validation",
+      "location": "Brahmaputra River, Assam (2024 acquisition)",
+      "date": "2024-02-10",
+      "sensor": "Sentinel-2 MSI L2A",
+      "dominant_cover": "water, sandbar, riverside vegetation",
+      "source_file": "data/locations/river/reference/scene_20240210.tif",
+      "features_file": "processed/river_ref_2024_features.npy",
+      "labels_file": "labels/river_ref_2024_labels.npy",
+      "height": 280,
+      "width": 420,
+      "n_pixels": 117600,
+      "class_distribution": {
+        "Bare land": {
+          "class_id": 0,
+          "count": 18718,
+          "pct": 15.92
+        },
+        "Vegetation": {
+          "class_id": 1,
+          "count": 11392,
+          "pct": 9.69
+        },
+        "Water": {
+          "class_id": 2,
+          "count": 26636,
+          "pct": 22.65
+        },
+        "Road": {
+          "class_id": 3,
+          "count": 57076,
+          "pct": 48.53
+        },
+        "Building": {
+          "class_id": 4,
+          "count": 3778,
+          "pct": 3.21
+        }
+      }
+    }
+  ]
+}

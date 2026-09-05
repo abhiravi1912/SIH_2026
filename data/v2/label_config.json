@@ -1,0 +1,30 @@
+{
+  "version": "v2.0",
+  "random_seed": 42,
+  "epsilon": 1e-05,
+  "class_map": {
+    "0": "Bare land",
+    "1": "Vegetation",
+    "2": "Water",
+    "3": "Road",
+    "4": "Building"
+  },
+  "thresholds": {
+    "water_ndwi_min": 0.15,
+    "vegetation_ndvi_min": 0.25,
+    "building_r_min": 150,
+    "building_nir_min": 130,
+    "building_ndvi_max": 0.1,
+    "road_grey_diff_max": 15,
+    "road_r_min": 60,
+    "road_r_max": 150
+  },
+  "priority_order": [
+    "Water",
+    "Vegetation",
+    "Building",
+    "Road",
+    "Bare land"
+  ],
+  "note": "Labels are algorithmically derived via spectral thresholds applied to real Sentinel-2 BOA reflectance. They are NOT human-annotated. Classifier comparisons are valid (same labels, same test set), but absolute accuracy numbers reflect agreement with spectral rules, not manually verified ground truth."
+}

@@ -5,47 +5,46 @@ Person 2 — V2 four-classifier benchmark.
 
 Pipeline
 --------
-1. Load train/validation/test splits from data/v2/splits/
-2. Train each classifier fresh on the SAME train split
-3. Evaluate each classifier on the SAME test split
-4. Compute metrics via eval/v2/metrics.py (identical for all classifiers)
-5. Save results to eval/v2/results/benchmark_results.json  &  .csv
-6. Save confusion matrices to eval/v2/results/
+    Real Dataset  (data/v2/splits/)
+         ↓
+    Same features [R, G, B, NIR, NDVI, NDWI]
+         ↓
+    ┌──────────┬──────────┬──────────┬──────────┐
+    │    RF    │   SVM    │ XGBoost  │   KNN    │
+    └──────────┴──────────┴──────────┴──────────┘
+                       ↓
+                 SAME TEST SET
+                       ↓
+       Accuracy / Precision / Recall / F1 / IoU
+                 Confusion Matrix
+                       ↓
+                 🏆 BEST MODEL
 
-Design principles
------------------
-- ADAPTER LAYER: Each classifier is wrapped in a uniform ClassifierAdapter
-  so the benchmark loop is model-agnostic.  Person 1's segmentation.py is
-  NOT imported or modified.
-- NO hard-coded results.  All numbers come from actual model.predict() calls.
-- NO winner is selected in advance.  The final comparison table is the output.
-- Random seed 42 is passed to every classifier that accepts it.
-
-Classifiers benchmarked
------------------------
-1. Random Forest  (sklearn)
-2. SVM            (sklearn)
-3. XGBoost        (xgboost)
-4. KNN            (sklearn)
-
-Dependencies
-------------
-    pip install scikit-learn xgboost matplotlib pandas
+Design
+------
+- ADAPTER LAYER: Each classifier is wrapped so the benchmark loop is
+  model-agnostic.  Adapters call Person 1's BaseV2Classifier subclasses
+  (.train() / .predict()) WITHOUT modifying any of Person 1's files.
+- NO hard-coded results. All numbers come from actual model.predict().
+- NO winner is selected in advance. The comparison table IS the output.
+- Random seed 42 everywhere.
 
 Run
 ---
     # Step 1 — prepare data (run once)
     python data/v2/prepare_dataset.py
 
-    # Step 2 — run benchmark
+    # Step 2 — run benchmark (all 4 classifiers)
     python eval/v2/benchmark.py
+
+    # Optional: no cap on training samples (slower)
+    python eval/v2/benchmark.py --max-train-samples 0
 
 Outputs
 -------
     eval/v2/results/benchmark_results.json
     eval/v2/results/benchmark_results.csv
-    eval/v2/results/confusion_matrix_<model>.png   (one per classifier)
-    eval/v2/results/confusion_matrix_<model>.json  (raw counts)
+    eval/v2/results/confusion_matrix_<model>.png  (one per classifier)
 """
 
 from __future__ import annotations
@@ -57,7 +56,7 @@ import time
 import logging
 import numpy as np
 
-# ─── Path bootstrap (run from project root or eval/v2/) ──────────────────────
+# ─── Path bootstrap ───────────────────────────────────────────────────────────
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(_THIS_DIR, "..", ".."))
 if PROJECT_ROOT not in sys.path:
@@ -86,153 +85,133 @@ log = logging.getLogger("v2.benchmark")
 
 
 # ─── Adapter layer ────────────────────────────────────────────────────────────
+# Wraps Person 1's BaseV2Classifier subclasses with a uniform interface.
+# Person 1's files are NEVER modified — only instantiated and called here.
 
 class ClassifierAdapter:
-    """
-    Uniform wrapper around a classifier so the benchmark loop is model-agnostic.
+    """Uniform thin wrapper over Person 1's BaseV2Classifier subclasses."""
 
-    Each subclass must implement:
-        fit(X_train, y_train)
-        predict(X_test) -> np.ndarray
-        get_name() -> str
-    """
+    def __init__(self, v2_instance, display_name: str):
+        """
+        Parameters
+        ----------
+        v2_instance : BaseV2Classifier subclass instance
+            One of: RandomForestV2, SVMV2, XGBoostV2, KNNV2
+        display_name : str
+            Human-readable label for tables and filenames.
+        """
+        self._clf = v2_instance
+        self._name = display_name
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> "ClassifierAdapter":
-        raise NotImplementedError
-
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        raise NotImplementedError
-
-    def get_name(self) -> str:
-        raise NotImplementedError
-
-
-class RandomForestAdapter(ClassifierAdapter):
-    """Random Forest via sklearn.  Matches feature space of segmentation.py."""
-
-    def __init__(self, n_estimators: int = 200, seed: int = RANDOM_SEED):
-        from sklearn.ensemble import RandomForestClassifier
-
-        self._model = RandomForestClassifier(
-            n_estimators=n_estimators,
-            max_features="sqrt",
-            n_jobs=-1,
-            random_state=seed,
-        )
-        self._name = "Random Forest"
-
-    def fit(self, X, y):
-        self._model.fit(X, y)
+        # Person 1's API: .train(X_train, y_train)
+        self._clf.train(X, y)
         return self
 
-    def predict(self, X):
-        return self._model.predict(X).astype(np.int64)
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        # Person 1's API: .predict(X) → np.ndarray uint8
+        return self._clf.predict(X).astype(np.int64)
 
-    def get_name(self):
+    def get_name(self) -> str:
         return self._name
 
 
-class SVMAdapter(ClassifierAdapter):
+def build_adapters() -> list[ClassifierAdapter]:
     """
-    Support Vector Machine via sklearn.
-    Uses LinearSVC for scalability on large pixel arrays.
+    Instantiate all four classifiers using Person 1's V2 classes and wrap
+    them in ClassifierAdapter.  Import errors are caught per-classifier so
+    one missing dependency does not abort the full benchmark.
     """
+    adapters = []
 
-    def __init__(self, C: float = 1.0, seed: int = RANDOM_SEED, max_iter: int = 2000):
+    # ── 1. Random Forest ──────────────────────────────────────────────────────
+    try:
+        from backend.models.v2.random_forest import RandomForestV2
+        rf = RandomForestV2(
+            n_estimators=200,
+            max_depth=12,
+            max_features="sqrt",
+            random_state=RANDOM_SEED,
+            n_jobs=-1,
+            use_scaler=False,
+        )
+        adapters.append(ClassifierAdapter(rf, "Random Forest"))
+        log.info("  ✓ Random Forest loaded")
+    except Exception as exc:
+        log.error(f"  ✗ Random Forest unavailable: {exc}")
+
+    # ── 2. SVM ────────────────────────────────────────────────────────────────
+    # NOTE: Person 1's SVMV2 wraps sklearn.svm.SVC which is O(n²) in training
+    # samples — not feasible on 265K pixels (would take hours).
+    # The adapter uses sklearn LinearSVC directly (liblinear solver, O(n)),
+    # which is the standard scalable SVM for large pixel datasets.
+    # Person 1's svm.py is NOT modified.
+    try:
         from sklearn.svm import LinearSVC
         from sklearn.preprocessing import StandardScaler
         from sklearn.pipeline import Pipeline
 
-        self._model = Pipeline([
-            ("scaler", StandardScaler()),
-            ("svm", LinearSVC(C=C, max_iter=max_iter, random_state=seed)),
-        ])
-        self._name = "SVM (LinearSVC)"
+        class _LinearSVCAdapter(ClassifierAdapter):
+            """Thin local wrapper — uses sklearn LinearSVC, not SVMV2(SVC)."""
+            def __init__(self):
+                self._pipeline = Pipeline([
+                    ("scaler", StandardScaler()),
+                    ("svm", LinearSVC(C=1.0, max_iter=3000, random_state=RANDOM_SEED)),
+                ])
+                self._name = "SVM (LinearSVC)"
 
-    def fit(self, X, y):
-        self._model.fit(X, y)
-        return self
+            def fit(self, X, y):
+                self._pipeline.fit(X, y.astype(np.int32))
+                return self
 
-    def predict(self, X):
-        return self._model.predict(X).astype(np.int64)
+            def predict(self, X):
+                return self._pipeline.predict(X).astype(np.int64)
 
-    def get_name(self):
-        return self._name
+            def get_name(self):
+                return self._name
 
+        adapters.append(_LinearSVCAdapter())
+        log.info("  ✓ SVM (LinearSVC) loaded")
+    except Exception as exc:
+        log.error(f"  ✗ SVM unavailable: {exc}")
 
-class XGBoostAdapter(ClassifierAdapter):
-    """XGBoost gradient boosting classifier."""
-
-    def __init__(self, seed: int = RANDOM_SEED):
-        try:
-            from xgboost import XGBClassifier
-        except ImportError as exc:
-            raise ImportError(
-                "xgboost is required for the XGBoost adapter.\n"
-                "Install with: pip install xgboost"
-            ) from exc
-
-        self._model = XGBClassifier(
+    # ── 3. XGBoost ────────────────────────────────────────────────────────────
+    try:
+        from backend.models.v2.xgboost_model import XGBoostV2
+        xgb_clf = XGBoostV2(
             n_estimators=200,
             max_depth=6,
             learning_rate=0.1,
             subsample=0.8,
             colsample_bytree=0.8,
-            use_label_encoder=False,
-            eval_metric="mlogloss",
-            random_state=seed,
+            random_state=RANDOM_SEED,
             n_jobs=-1,
-            verbosity=0,
+            use_scaler=False,
         )
-        self._name = "XGBoost"
+        adapters.append(ClassifierAdapter(xgb_clf, "XGBoost"))
+        log.info("  ✓ XGBoost loaded")
+    except Exception as exc:
+        log.error(f"  ✗ XGBoost unavailable: {exc}")
 
-    def fit(self, X, y):
-        self._model.fit(X, y)
-        return self
+    # ── 4. KNN ────────────────────────────────────────────────────────────────
+    try:
+        from backend.models.v2.knn import KNNV2
+        knn = KNNV2(
+            n_neighbors=7,
+            use_scaler=True,   # KNN needs feature scaling
+        )
+        adapters.append(ClassifierAdapter(knn, "KNN (k=7)"))
+        log.info("  ✓ KNN loaded")
+    except Exception as exc:
+        log.error(f"  ✗ KNN unavailable: {exc}")
 
-    def predict(self, X):
-        return self._model.predict(X).astype(np.int64)
-
-    def get_name(self):
-        return self._name
-
-
-class KNNAdapter(ClassifierAdapter):
-    """k-Nearest Neighbours via sklearn."""
-
-    def __init__(self, k: int = 7):
-        from sklearn.neighbors import KNeighborsClassifier
-        from sklearn.preprocessing import StandardScaler
-        from sklearn.pipeline import Pipeline
-
-        self._model = Pipeline([
-            ("scaler", StandardScaler()),
-            ("knn", KNeighborsClassifier(n_neighbors=k, n_jobs=-1, algorithm="auto")),
-        ])
-        self._name = f"KNN (k={k})"
-
-    def fit(self, X, y):
-        self._model.fit(X, y)
-        return self
-
-    def predict(self, X):
-        return self._model.predict(X).astype(np.int64)
-
-    def get_name(self):
-        return self._name
+    return adapters
 
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# ─── Data helpers ─────────────────────────────────────────────────────────────
 
 def load_split(split_name: str) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Load X (features) and y (labels) from a pre-built split directory.
-
-    Returns
-    -------
-    X : (N, 6) float32
-    y : (N,) int64
-    """
+    """Load X (N,6) float32 and y (N,) int64 from a pre-built split."""
     split_dir = os.path.join(SPLITS_DIR, split_name)
     x_path = os.path.join(split_dir, "X.npy")
     y_path = os.path.join(split_dir, "y.npy")
@@ -240,41 +219,37 @@ def load_split(split_name: str) -> tuple[np.ndarray, np.ndarray]:
     if not os.path.isfile(x_path) or not os.path.isfile(y_path):
         raise FileNotFoundError(
             f"Split '{split_name}' not found at {split_dir}.\n"
-            "Run 'python data/v2/prepare_dataset.py' first."
+            "Run: python data/v2/prepare_dataset.py"
         )
+    return (
+        np.load(x_path).astype(np.float32),
+        np.load(y_path).astype(np.int64),
+    )
 
-    X = np.load(x_path).astype(np.float32)
-    y = np.load(y_path).astype(np.int64)
-    return X, y
 
-
-def subsample(
+def stratified_subsample(
     X: np.ndarray,
     y: np.ndarray,
     max_samples: int | None,
     seed: int = RANDOM_SEED,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Optionally subsample to max_samples while preserving class balance
-    (stratified sampling).  Returns the full array if max_samples >= len(X).
-    """
+    """Optionally cap training data with stratified sampling."""
     if max_samples is None or len(X) <= max_samples:
         return X, y
-
     rng = np.random.default_rng(seed)
     classes = np.unique(y)
     per_class = max_samples // len(classes)
-
     idx_list = []
     for c in classes:
         idx_c = np.where(y == c)[0]
         n = min(per_class, len(idx_c))
         idx_list.append(rng.choice(idx_c, size=n, replace=False))
-
     idx = np.concatenate(idx_list)
     rng.shuffle(idx)
     return X[idx], y[idx]
 
+
+# ─── Single model evaluation ──────────────────────────────────────────────────
 
 def evaluate_one(
     adapter: ClassifierAdapter,
@@ -284,17 +259,13 @@ def evaluate_one(
     y_test: np.ndarray,
     max_train_samples: int | None = 300_000,
 ) -> dict:
-    """
-    Train adapter on (X_train, y_train) and evaluate on (X_test, y_test).
-
-    Returns a dict with timing + full metrics report.
-    """
+    """Train adapter → predict on test → compute full metrics."""
     from eval.v2.metrics import full_report
 
     name = adapter.get_name()
     log.info(f"  Training {name} ...")
 
-    X_tr, y_tr = subsample(X_train, y_train, max_train_samples)
+    X_tr, y_tr = stratified_subsample(X_train, y_train, max_train_samples)
 
     t0 = time.perf_counter()
     adapter.fit(X_tr, y_tr)
@@ -308,8 +279,8 @@ def evaluate_one(
 
     report = full_report(y_test, y_pred, class_names=CLASS_NAMES, n_classes=N_CLASSES)
     log.info(
-        f"    OA={report['overall_accuracy']:.4f} | "
-        f"macroF1={report['macro_f1']:.4f} | "
+        f"    OA={report['overall_accuracy']:.4f}  "
+        f"macroF1={report['macro_f1']:.4f}  "
         f"mIoU={report['mean_iou']:.4f}"
     )
 
@@ -323,34 +294,71 @@ def evaluate_one(
     }
 
 
-def save_results(
-    all_results: dict[str, dict],
-    run_meta: dict,
-) -> tuple[str, str]:
-    """
-    Save benchmark_results.json and benchmark_results.csv.
+# ─── Comparison table ─────────────────────────────────────────────────────────
 
-    Returns (json_path, csv_path).
-    """
+def print_comparison_table(all_results: dict[str, dict]) -> None:
+    cols   = ["Model", "OA", "Macro F1", "Wt. F1", "mIoU", "Train(s)", "Infer(s)"]
+    widths = [22, 8, 10, 8, 8, 10, 9]
+    sep = "  "
+    header  = sep.join(c.ljust(w) for c, w in zip(cols, widths))
+    divider = sep.join("-" * w for w in widths)
+
+    print()
+    print("=" * 85)
+    print("  V2 BENCHMARK — COMPARISON TABLE  (test split, held-out)")
+    print("=" * 85)
+    print(header)
+    print(divider)
+
+    ranked = sorted(
+        [(n, r) for n, r in all_results.items() if "error" not in r],
+        key=lambda x: x[1].get("macro_f1", 0),
+        reverse=True,
+    )
+    for i, (name, res) in enumerate(ranked):
+        crown = " [BEST]" if i == 0 else "       "
+        row = [
+            name + crown,
+            f"{res.get('overall_accuracy', 0):.4f}",
+            f"{res.get('macro_f1', 0):.4f}",
+            f"{res.get('weighted_f1', 0):.4f}",
+            f"{res.get('mean_iou', 0):.4f}",
+            f"{res.get('train_time_s', 0):.2f}",
+            f"{res.get('infer_time_s', 0):.3f}",
+        ]
+        print(sep.join(str(v).ljust(w) for v, w in zip(row, widths)))
+
+    # Failed models
+    for name, res in all_results.items():
+        if "error" in res:
+            print(f"  {name:<22}  [FAILED] {res['error']}")
+
+    print("=" * 85)
+    print()
+    print("  [BEST] = Best model by Macro F1 on the held-out test split.")
+    print("  Winner determined by measured performance — not pre-selected.")
+    print()
+
+
+# ─── Result persistence ───────────────────────────────────────────────────────
+
+def save_results(all_results: dict, run_meta: dict) -> tuple[str, str | None]:
     os.makedirs(RESULTS_DIR, exist_ok=True)
 
-    # ── JSON ──────────────────────────────────────────────────────────────────
-    output = {
-        "benchmark_version": "v2.0",
-        "run_metadata": run_meta,
-        "models": all_results,
-    }
+    output = {"benchmark_version": "v2.1", "run_metadata": run_meta, "models": all_results}
     json_path = os.path.join(RESULTS_DIR, "benchmark_results.json")
     with open(json_path, "w") as f:
         json.dump(output, f, indent=2)
 
-    # ── CSV ───────────────────────────────────────────────────────────────────
+    csv_path = None
     try:
         import csv
-
         csv_path = os.path.join(RESULTS_DIR, "benchmark_results.csv")
         rows = []
         for model_name, res in all_results.items():
+            if "error" in res:
+                rows.append({"model": model_name, "error": res["error"]})
+                continue
             row = {
                 "model": model_name,
                 "overall_accuracy": res.get("overall_accuracy"),
@@ -362,13 +370,10 @@ def save_results(
                 "train_samples": res.get("train_samples"),
                 "test_samples": res.get("test_samples"),
             }
-            # Per-class columns
             for cls_name, stats in res.get("per_class", {}).items():
                 safe = cls_name.lower().replace(" ", "_")
-                row[f"{safe}_precision"] = stats.get("precision")
-                row[f"{safe}_recall"] = stats.get("recall")
-                row[f"{safe}_f1"] = stats.get("f1")
-                row[f"{safe}_iou"] = stats.get("iou")
+                for m in ("precision", "recall", "f1", "iou"):
+                    row[f"{safe}_{m}"] = stats.get(m)
             rows.append(row)
 
         if rows:
@@ -378,98 +383,53 @@ def save_results(
                 writer.writeheader()
                 writer.writerows(rows)
     except Exception as exc:
-        log.warning(f"Could not write CSV: {exc}")
-        csv_path = None
+        log.warning(f"CSV export failed: {exc}")
 
     return json_path, csv_path
-
-
-def print_comparison_table(all_results: dict[str, dict]) -> None:
-    """Print a human-readable comparison table to stdout."""
-    cols = ["Model", "OA", "Macro F1", "Wt. F1", "mIoU", "Train(s)", "Infer(s)"]
-    widths = [22, 8, 10, 8, 8, 10, 9]
-    sep = "  "
-
-    header = sep.join(c.ljust(w) for c, w in zip(cols, widths))
-    divider = sep.join("-" * w for w in widths)
-
-    print()
-    print("=" * 85)
-    print("  V2 BENCHMARK — COMPARISON TABLE  (test split)")
-    print("=" * 85)
-    print(header)
-    print(divider)
-
-    for name, res in all_results.items():
-        row = [
-            name,
-            f"{res.get('overall_accuracy', 0):.4f}",
-            f"{res.get('macro_f1', 0):.4f}",
-            f"{res.get('weighted_f1', 0):.4f}",
-            f"{res.get('mean_iou', 0):.4f}",
-            f"{res.get('train_time_s', 0):.2f}",
-            f"{res.get('infer_time_s', 0):.3f}",
-        ]
-        print(sep.join(str(v).ljust(w) for v, w in zip(row, widths)))
-
-    print("=" * 85)
-    print()
-    print("  NOTE: No winner is pre-selected. The table above reflects")
-    print("  measured performance on the held-out test split.")
-    print()
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 def run_benchmark(max_train_samples: int | None = 300_000) -> None:
-    """
-    Main benchmark entry point.
-
-    Parameters
-    ----------
-    max_train_samples : cap on training set size (stratified).
-        Set to None to use all training pixels.
-        Default 300_000 to keep SVM and KNN feasible on a laptop.
-    """
     from eval.v2.metrics import print_report
     from eval.v2.confusion_matrix import plot_and_save
 
     log.info("=" * 60)
     log.info("V2 Classifier Benchmark")
-    log.info(f"Random seed : {RANDOM_SEED}")
+    log.info(f"Random seed   : {RANDOM_SEED}")
+    log.info(f"Train cap     : {max_train_samples or 'None (all pixels)'}")
     log.info("=" * 60)
 
-    # ── Load splits ──────────────────────────────────────────────────────────
+    # ── Load data splits ──────────────────────────────────────────────────────
     log.info("Loading splits ...")
     try:
         X_train, y_train = load_split("train")
-        X_val, y_val = load_split("validation")
-        X_test, y_test = load_split("test")
+        X_val,   y_val   = load_split("validation")
+        X_test,  y_test  = load_split("test")
     except FileNotFoundError as exc:
         log.error(str(exc))
         sys.exit(1)
 
     log.info(f"  Train      : {len(X_train):>9,} pixels")
     log.info(f"  Validation : {len(X_val):>9,} pixels")
-    log.info(f"  Test       : {len(X_test):>9,} pixels")
-    log.info(f"  Features   : {X_train.shape[1]} (R, G, B, NIR, NDVI, NDWI)")
+    log.info(f"  Test       : {len(X_test):>9,} pixels  ← held-out")
+    log.info(f"  Features   : {X_train.shape[1]}  [R, G, B, NIR, NDVI, NDWI]")
 
-    # Combine train + validation for final model training
-    # (validation was used for threshold tuning during development;
-    #  the test split is held out until this function runs)
+    # Train on train+val combined; test split untouched until evaluation
     X_train_full = np.concatenate([X_train, X_val], axis=0)
     y_train_full = np.concatenate([y_train, y_val], axis=0)
-    log.info(f"  Train+Val  : {len(X_train_full):>9,} pixels (used for training)")
+    log.info(f"  Train+Val  : {len(X_train_full):>9,} pixels (used for fitting)")
 
-    # ── Classifier registry ──────────────────────────────────────────────────
-    adapters: list[ClassifierAdapter] = [
-        RandomForestAdapter(n_estimators=200, seed=RANDOM_SEED),
-        SVMAdapter(C=1.0, seed=RANDOM_SEED),
-        XGBoostAdapter(seed=RANDOM_SEED),
-        KNNAdapter(k=7),
-    ]
+    # ── Instantiate classifiers via Person 1's V2 classes ────────────────────
+    log.info("")
+    log.info("Instantiating classifiers ...")
+    adapters = build_adapters()
 
-    # ── Run benchmark ────────────────────────────────────────────────────────
+    if not adapters:
+        log.error("No classifiers available. Check backend/models/v2/ imports.")
+        sys.exit(1)
+
+    # ── Run benchmark ─────────────────────────────────────────────────────────
     all_results: dict[str, dict] = {}
 
     for adapter in adapters:
@@ -477,37 +437,27 @@ def run_benchmark(max_train_samples: int | None = 300_000) -> None:
         try:
             result = evaluate_one(
                 adapter,
-                X_train_full,
-                y_train_full,
-                X_test,
-                y_test,
+                X_train_full, y_train_full,
+                X_test, y_test,
                 max_train_samples=max_train_samples,
             )
             all_results[adapter.get_name()] = result
-
-            # Pretty print per-model report
             print_report(adapter.get_name(), result, class_names=CLASS_NAMES)
 
-            # Confusion matrix
             cm = result.get("confusion_matrix")
             if cm is not None:
-                png_path = plot_and_save(
-                    cm,
-                    adapter.get_name(),
-                    results_dir=RESULTS_DIR,
-                )
-                log.info(f"    CM saved : {png_path}")
+                png = plot_and_save(cm, adapter.get_name(), results_dir=RESULTS_DIR)
+                log.info(f"    CM saved : {png}")
 
         except Exception as exc:
-            log.error(f"  {adapter.get_name()} failed: {exc}", exc_info=True)
+            log.error(f"  {adapter.get_name()} FAILED: {exc}", exc_info=True)
             all_results[adapter.get_name()] = {"error": str(exc)}
 
     # ── Comparison table ──────────────────────────────────────────────────────
     print_comparison_table(all_results)
 
-    # ── Save results ──────────────────────────────────────────────────────────
+    # ── Persist results ───────────────────────────────────────────────────────
     import platform, datetime
-
     run_meta = {
         "timestamp": datetime.datetime.now().isoformat(),
         "random_seed": RANDOM_SEED,
@@ -519,18 +469,18 @@ def run_benchmark(max_train_samples: int | None = 300_000) -> None:
         "python_version": platform.python_version(),
         "platform": platform.platform(),
         "dataset_dir": DATA_V2_ROOT,
+        "classifier_source": "backend/models/v2/ (Person 1's V2 classifier classes)",
         "note": (
-            "Labels are spectral-threshold derived from real Sentinel-2 imagery. "
-            "All four classifiers trained on the same train+val split and evaluated "
-            "on the same held-out test split with identical 6-feature vectors."
+            "All classifiers trained on train+val split, evaluated on the same "
+            "held-out test split with identical 6-feature vectors. "
+            "No winner pre-selected — ranking is by measured Macro F1."
         ),
     }
 
     json_path, csv_path = save_results(all_results, run_meta)
-    log.info(f"Results saved:")
-    log.info(f"  JSON : {json_path}")
+    log.info(f"Results → JSON : {json_path}")
     if csv_path:
-        log.info(f"  CSV  : {csv_path}")
+        log.info(f"Results → CSV  : {csv_path}")
     log.info("Benchmark complete.")
 
 
@@ -539,16 +489,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="V2 Classifier Benchmark")
     parser.add_argument(
-        "--max-train-samples",
-        type=int,
-        default=300_000,
-        help=(
-            "Cap on training samples (stratified). "
-            "Use 0 for no cap (very slow for SVM/KNN). "
-            "Default: 300000."
-        ),
+        "--max-train-samples", type=int, default=300_000,
+        help="Stratified training sample cap. 0 = no cap. Default: 300000.",
     )
     args = parser.parse_args()
-
-    max_samples = args.max_train_samples if args.max_train_samples > 0 else None
-    run_benchmark(max_train_samples=max_samples)
+    max_s = args.max_train_samples if args.max_train_samples > 0 else None
+    run_benchmark(max_train_samples=max_s)

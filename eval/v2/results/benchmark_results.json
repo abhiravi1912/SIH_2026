@@ -1,7 +1,7 @@
 {
-  "benchmark_version": "v2.0",
+  "benchmark_version": "v2.1",
   "run_metadata": {
-    "timestamp": "2026-09-05T22:14:46.113766",
+    "timestamp": "2026-09-05T22:51:58.681086",
     "random_seed": 42,
     "n_classes": 5,
     "class_names": {
@@ -24,29 +24,30 @@
     "python_version": "3.12.5",
     "platform": "Windows-11-10.0.26200-SP0",
     "dataset_dir": "D:\\SIH_2026\\data\\v2",
-    "note": "Labels are spectral-threshold derived from real Sentinel-2 imagery. All four classifiers trained on the same train+val split and evaluated on the same held-out test split with identical 6-feature vectors."
+    "classifier_source": "backend/models/v2/ (Person 1's V2 classifier classes)",
+    "note": "All classifiers trained on train+val split, evaluated on the same held-out test split with identical 6-feature vectors. No winner pre-selected \u2014 ranking is by measured Macro F1."
   },
   "models": {
     "Random Forest": {
       "model_name": "Random Forest",
       "train_samples": 265496,
       "test_samples": 262144,
-      "train_time_s": 14.6746,
-      "infer_time_s": 1.047,
-      "overall_accuracy": 0.99107,
-      "macro_f1": 0.96678,
-      "weighted_f1": 0.9908,
-      "mean_iou": 0.941936,
+      "train_time_s": 11.5414,
+      "infer_time_s": 0.8495,
+      "overall_accuracy": 0.985725,
+      "macro_f1": 0.950773,
+      "weighted_f1": 0.985857,
+      "mean_iou": 0.918721,
       "per_class": {
         "Bare land": {
-          "precision": 0.984856,
-          "recall": 0.993783,
-          "f1": 0.989299,
-          "iou": 0.978824,
+          "precision": 0.984267,
+          "recall": 0.98132,
+          "f1": 0.982791,
+          "iou": 0.966165,
           "support": 108888,
-          "TP": 108211,
-          "FP": 1664,
-          "FN": 677
+          "TP": 106854,
+          "FP": 1708,
+          "FN": 2034
         },
         "Vegetation": {
           "precision": 1.0,
@@ -69,32 +70,32 @@
           "FN": 0
         },
         "Road": {
-          "precision": 0.903712,
-          "recall": 0.793258,
-          "f1": 0.844891,
-          "iou": 0.731438,
+          "precision": 0.755998,
+          "recall": 0.786767,
+          "f1": 0.771075,
+          "iou": 0.627439,
           "support": 8010,
-          "TP": 6354,
-          "FP": 677,
-          "FN": 1656
+          "TP": 6302,
+          "FP": 2034,
+          "FN": 1708
         },
         "Building": {
           "precision": 1.0,
-          "recall": 0.999418,
-          "f1": 0.999709,
-          "iou": 0.999418,
+          "recall": 1.0,
+          "f1": 1.0,
+          "iou": 1.0,
           "support": 13751,
-          "TP": 13743,
+          "TP": 13751,
           "FP": 0,
-          "FN": 8
+          "FN": 0
         }
       },
       "confusion_matrix": [
         [
-          108211,
+          106854,
           0,
           0,
-          677,
+          2034,
           0
         ],
         [
@@ -112,18 +113,18 @@
           0
         ],
         [
-          1656,
+          1708,
           0,
           0,
-          6354,
+          6302,
           0
         ],
         [
-          8,
           0,
           0,
           0,
-          13743
+          0,
+          13751
         ]
       ],
       "n_samples": 262144,
@@ -133,8 +134,8 @@
       "model_name": "SVM (LinearSVC)",
       "train_samples": 265496,
       "test_samples": 262144,
-      "train_time_s": 4.2532,
-      "infer_time_s": 0.0742,
+      "train_time_s": 4.3262,
+      "infer_time_s": 0.0404,
       "overall_accuracy": 0.950829,
       "macro_f1": 0.885895,
       "weighted_f1": 0.954771,
@@ -235,8 +236,8 @@
       "model_name": "XGBoost",
       "train_samples": 265496,
       "test_samples": 262144,
-      "train_time_s": 8.7062,
-      "infer_time_s": 0.6297,
+      "train_time_s": 10.8139,
+      "infer_time_s": 0.7271,
       "overall_accuracy": 0.988457,
       "macro_f1": 0.961675,
       "weighted_f1": 0.988129,
@@ -337,75 +338,75 @@
       "model_name": "KNN (k=7)",
       "train_samples": 265496,
       "test_samples": 262144,
-      "train_time_s": 0.6837,
-      "infer_time_s": 1.8537,
-      "overall_accuracy": 0.968483,
-      "macro_f1": 0.925276,
-      "weighted_f1": 0.96789,
-      "mean_iou": 0.870424,
+      "train_time_s": 0.9842,
+      "infer_time_s": 1.8105,
+      "overall_accuracy": 0.96954,
+      "macro_f1": 0.927473,
+      "weighted_f1": 0.968959,
+      "mean_iou": 0.873688,
       "per_class": {
         "Bare land": {
-          "precision": 0.953703,
-          "recall": 0.97221,
-          "f1": 0.962868,
-          "iou": 0.928394,
+          "precision": 0.954352,
+          "recall": 0.97423,
+          "f1": 0.964189,
+          "iou": 0.930854,
           "support": 108888,
-          "TP": 105862,
-          "FP": 5139,
-          "FN": 3026
+          "TP": 106082,
+          "FP": 5074,
+          "FN": 2806
         },
         "Vegetation": {
-          "precision": 0.992177,
-          "recall": 0.98912,
-          "f1": 0.990646,
-          "iou": 0.981466,
+          "precision": 0.992435,
+          "recall": 0.989639,
+          "f1": 0.991035,
+          "iou": 0.982229,
           "support": 121421,
-          "TP": 120100,
-          "FP": 947,
-          "FN": 1321
+          "TP": 120163,
+          "FP": 916,
+          "FN": 1258
         },
         "Water": {
-          "precision": 0.99306,
-          "recall": 0.994243,
-          "f1": 0.993651,
-          "iou": 0.987382,
+          "precision": 0.993053,
+          "recall": 0.99325,
+          "f1": 0.993151,
+          "iou": 0.986396,
           "support": 10074,
-          "TP": 10016,
+          "TP": 10006,
           "FP": 70,
-          "FN": 58
+          "FN": 68
         },
         "Road": {
-          "precision": 0.900663,
-          "recall": 0.695006,
-          "f1": 0.784582,
-          "iou": 0.645524,
+          "precision": 0.901836,
+          "recall": 0.705368,
+          "f1": 0.791594,
+          "iou": 0.655072,
           "support": 8010,
-          "TP": 5567,
-          "FP": 614,
-          "FN": 2443
+          "TP": 5650,
+          "FP": 615,
+          "FN": 2360
         },
         "Building": {
-          "precision": 0.892111,
-          "recall": 0.897171,
-          "f1": 0.894634,
-          "iou": 0.809355,
+          "precision": 0.903449,
+          "recall": 0.891426,
+          "f1": 0.897397,
+          "iou": 0.81389,
           "support": 13751,
-          "TP": 12337,
-          "FP": 1492,
-          "FN": 1414
+          "TP": 12258,
+          "FP": 1310,
+          "FN": 1493
         }
       },
       "confusion_matrix": [
         [
-          105862,
-          864,
+          106082,
+          835,
           70,
-          600,
-          1492
+          591,
+          1310
         ],
         [
-          1311,
-          120100,
+          1248,
+          120163,
           0,
           10,
           0
@@ -413,23 +414,23 @@
         [
           54,
           0,
-          10016,
-          4,
+          10006,
+          14,
           0
         ],
         [
-          2360,
-          83,
+          2279,
+          81,
           0,
-          5567,
+          5650,
           0
         ],
         [
-          1414,
+          1493,
           0,
           0,
           0,
-          12337
+          12258
         ]
       ],
       "n_samples": 262144,

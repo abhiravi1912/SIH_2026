@@ -1,0 +1,439 @@
+{
+  "benchmark_version": "v2.0",
+  "run_metadata": {
+    "timestamp": "2026-09-05T22:14:46.113766",
+    "random_seed": 42,
+    "n_classes": 5,
+    "class_names": {
+      "0": "Bare land",
+      "1": "Vegetation",
+      "2": "Water",
+      "3": "Road",
+      "4": "Building"
+    },
+    "features": [
+      "R",
+      "G",
+      "B",
+      "NIR",
+      "NDVI",
+      "NDWI"
+    ],
+    "max_train_samples_cap": 300000,
+    "test_samples": 262144,
+    "python_version": "3.12.5",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "dataset_dir": "D:\\SIH_2026\\data\\v2",
+    "note": "Labels are spectral-threshold derived from real Sentinel-2 imagery. All four classifiers trained on the same train+val split and evaluated on the same held-out test split with identical 6-feature vectors."
+  },
+  "models": {
+    "Random Forest": {
+      "model_name": "Random Forest",
+      "train_samples": 265496,
+      "test_samples": 262144,
+      "train_time_s": 14.6746,
+      "infer_time_s": 1.047,
+      "overall_accuracy": 0.99107,
+      "macro_f1": 0.96678,
+      "weighted_f1": 0.9908,
+      "mean_iou": 0.941936,
+      "per_class": {
+        "Bare land": {
+          "precision": 0.984856,
+          "recall": 0.993783,
+          "f1": 0.989299,
+          "iou": 0.978824,
+          "support": 108888,
+          "TP": 108211,
+          "FP": 1664,
+          "FN": 677
+        },
+        "Vegetation": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "iou": 1.0,
+          "support": 121421,
+          "TP": 121421,
+          "FP": 0,
+          "FN": 0
+        },
+        "Water": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "iou": 1.0,
+          "support": 10074,
+          "TP": 10074,
+          "FP": 0,
+          "FN": 0
+        },
+        "Road": {
+          "precision": 0.903712,
+          "recall": 0.793258,
+          "f1": 0.844891,
+          "iou": 0.731438,
+          "support": 8010,
+          "TP": 6354,
+          "FP": 677,
+          "FN": 1656
+        },
+        "Building": {
+          "precision": 1.0,
+          "recall": 0.999418,
+          "f1": 0.999709,
+          "iou": 0.999418,
+          "support": 13751,
+          "TP": 13743,
+          "FP": 0,
+          "FN": 8
+        }
+      },
+      "confusion_matrix": [
+        [
+          108211,
+          0,
+          0,
+          677,
+          0
+        ],
+        [
+          0,
+          121421,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          10074,
+          0,
+          0
+        ],
+        [
+          1656,
+          0,
+          0,
+          6354,
+          0
+        ],
+        [
+          8,
+          0,
+          0,
+          0,
+          13743
+        ]
+      ],
+      "n_samples": 262144,
+      "n_classes": 5
+    },
+    "SVM (LinearSVC)": {
+      "model_name": "SVM (LinearSVC)",
+      "train_samples": 265496,
+      "test_samples": 262144,
+      "train_time_s": 4.2532,
+      "infer_time_s": 0.0742,
+      "overall_accuracy": 0.950829,
+      "macro_f1": 0.885895,
+      "weighted_f1": 0.954771,
+      "mean_iou": 0.817424,
+      "per_class": {
+        "Bare land": {
+          "precision": 0.970555,
+          "recall": 0.910266,
+          "f1": 0.939444,
+          "iou": 0.885804,
+          "support": 108888,
+          "TP": 99117,
+          "FP": 3007,
+          "FN": 9771
+        },
+        "Vegetation": {
+          "precision": 0.998573,
+          "recall": 0.996936,
+          "f1": 0.997754,
+          "iou": 0.995518,
+          "support": 121421,
+          "TP": 121049,
+          "FP": 173,
+          "FN": 372
+        },
+        "Water": {
+          "precision": 0.994668,
+          "recall": 1.0,
+          "f1": 0.997327,
+          "iou": 0.994668,
+          "support": 10074,
+          "TP": 10074,
+          "FP": 54,
+          "FN": 0
+        },
+        "Road": {
+          "precision": 0.497535,
+          "recall": 0.957428,
+          "f1": 0.654798,
+          "iou": 0.486766,
+          "support": 8010,
+          "TP": 7669,
+          "FP": 7745,
+          "FN": 341
+        },
+        "Building": {
+          "precision": 0.855839,
+          "recall": 0.825031,
+          "f1": 0.840153,
+          "iou": 0.724365,
+          "support": 13751,
+          "TP": 11345,
+          "FP": 1911,
+          "FN": 2406
+        }
+      },
+      "confusion_matrix": [
+        [
+          99117,
+          173,
+          54,
+          7633,
+          1911
+        ],
+        [
+          260,
+          121049,
+          0,
+          112,
+          0
+        ],
+        [
+          0,
+          0,
+          10074,
+          0,
+          0
+        ],
+        [
+          341,
+          0,
+          0,
+          7669,
+          0
+        ],
+        [
+          2406,
+          0,
+          0,
+          0,
+          11345
+        ]
+      ],
+      "n_samples": 262144,
+      "n_classes": 5
+    },
+    "XGBoost": {
+      "model_name": "XGBoost",
+      "train_samples": 265496,
+      "test_samples": 262144,
+      "train_time_s": 8.7062,
+      "infer_time_s": 0.6297,
+      "overall_accuracy": 0.988457,
+      "macro_f1": 0.961675,
+      "weighted_f1": 0.988129,
+      "mean_iou": 0.932304,
+      "per_class": {
+        "Bare land": {
+          "precision": 0.981418,
+          "recall": 0.990972,
+          "f1": 0.986172,
+          "iou": 0.972722,
+          "support": 108888,
+          "TP": 107905,
+          "FP": 2043,
+          "FN": 983
+        },
+        "Vegetation": {
+          "precision": 0.998955,
+          "recall": 0.999489,
+          "f1": 0.999222,
+          "iou": 0.998445,
+          "support": 121421,
+          "TP": 121359,
+          "FP": 127,
+          "FN": 62
+        },
+        "Water": {
+          "precision": 0.996832,
+          "recall": 0.999603,
+          "f1": 0.998216,
+          "iou": 0.996438,
+          "support": 10074,
+          "TP": 10070,
+          "FP": 32,
+          "FN": 4
+        },
+        "Road": {
+          "precision": 0.912414,
+          "recall": 0.779026,
+          "f1": 0.840461,
+          "iou": 0.724823,
+          "support": 8010,
+          "TP": 6240,
+          "FP": 599,
+          "FN": 1770
+        },
+        "Building": {
+          "precision": 0.983659,
+          "recall": 0.984947,
+          "f1": 0.984302,
+          "iou": 0.96909,
+          "support": 13751,
+          "TP": 13544,
+          "FP": 225,
+          "FN": 207
+        }
+      },
+      "confusion_matrix": [
+        [
+          107905,
+          127,
+          32,
+          599,
+          225
+        ],
+        [
+          62,
+          121359,
+          0,
+          0,
+          0
+        ],
+        [
+          4,
+          0,
+          10070,
+          0,
+          0
+        ],
+        [
+          1770,
+          0,
+          0,
+          6240,
+          0
+        ],
+        [
+          207,
+          0,
+          0,
+          0,
+          13544
+        ]
+      ],
+      "n_samples": 262144,
+      "n_classes": 5
+    },
+    "KNN (k=7)": {
+      "model_name": "KNN (k=7)",
+      "train_samples": 265496,
+      "test_samples": 262144,
+      "train_time_s": 0.6837,
+      "infer_time_s": 1.8537,
+      "overall_accuracy": 0.968483,
+      "macro_f1": 0.925276,
+      "weighted_f1": 0.96789,
+      "mean_iou": 0.870424,
+      "per_class": {
+        "Bare land": {
+          "precision": 0.953703,
+          "recall": 0.97221,
+          "f1": 0.962868,
+          "iou": 0.928394,
+          "support": 108888,
+          "TP": 105862,
+          "FP": 5139,
+          "FN": 3026
+        },
+        "Vegetation": {
+          "precision": 0.992177,
+          "recall": 0.98912,
+          "f1": 0.990646,
+          "iou": 0.981466,
+          "support": 121421,
+          "TP": 120100,
+          "FP": 947,
+          "FN": 1321
+        },
+        "Water": {
+          "precision": 0.99306,
+          "recall": 0.994243,
+          "f1": 0.993651,
+          "iou": 0.987382,
+          "support": 10074,
+          "TP": 10016,
+          "FP": 70,
+          "FN": 58
+        },
+        "Road": {
+          "precision": 0.900663,
+          "recall": 0.695006,
+          "f1": 0.784582,
+          "iou": 0.645524,
+          "support": 8010,
+          "TP": 5567,
+          "FP": 614,
+          "FN": 2443
+        },
+        "Building": {
+          "precision": 0.892111,
+          "recall": 0.897171,
+          "f1": 0.894634,
+          "iou": 0.809355,
+          "support": 13751,
+          "TP": 12337,
+          "FP": 1492,
+          "FN": 1414
+        }
+      },
+      "confusion_matrix": [
+        [
+          105862,
+          864,
+          70,
+          600,
+          1492
+        ],
+        [
+          1311,
+          120100,
+          0,
+          10,
+          0
+        ],
+        [
+          54,
+          0,
+          10016,
+          4,
+          0
+        ],
+        [
+          2360,
+          83,
+          0,
+          5567,
+          0
+        ],
+        [
+          1414,
+          0,
+          0,
+          0,
+          12337
+        ]
+      ],
+      "n_samples": 262144,
+      "n_classes": 5
+    }
+  }
+}

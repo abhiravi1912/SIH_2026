@@ -1,0 +1,75 @@
+{
+  "split": "test",
+  "n_pixels": 262144,
+  "n_scenes": 1,
+  "class_distribution": {
+    "Bare land": {
+      "class_id": 0,
+      "count": 108888,
+      "pct": 41.54
+    },
+    "Vegetation": {
+      "class_id": 1,
+      "count": 121421,
+      "pct": 46.32
+    },
+    "Water": {
+      "class_id": 2,
+      "count": 10074,
+      "pct": 3.84
+    },
+    "Road": {
+      "class_id": 3,
+      "count": 8010,
+      "pct": 3.06
+    },
+    "Building": {
+      "class_id": 4,
+      "count": 13751,
+      "pct": 5.25
+    }
+  },
+  "scenes": [
+    {
+      "scene_id": "vit_ap_tgt",
+      "split": "test",
+      "location": "VIT-AP University, Amaravati (5-year later scene)",
+      "date": "2026-03-05",
+      "sensor": "Sentinel-2 MSI L2A (S2C_44QMD_20260305_0_L2A)",
+      "dominant_cover": "expanded built-up, less bare land",
+      "source_file": "data/locations/vit_ap/target/scene_20260305.tif",
+      "features_file": "processed/vit_ap_tgt_features.npy",
+      "labels_file": "labels/vit_ap_tgt_labels.npy",
+      "height": 512,
+      "width": 512,
+      "n_pixels": 262144,
+      "class_distribution": {
+        "Bare land": {
+          "class_id": 0,
+          "count": 108888,
+          "pct": 41.54
+        },
+        "Vegetation": {
+          "class_id": 1,
+          "count": 121421,
+          "pct": 46.32
+        },
+        "Water": {
+          "class_id": 2,
+          "count": 10074,
+          "pct": 3.84
+        },
+        "Road": {
+          "class_id": 3,
+          "count": 8010,
+          "pct": 3.06
+        },
+        "Building": {
+          "class_id": 4,
+          "count": 13751,
+          "pct": 5.25
+        }
+      }
+    }
+  ]
+}

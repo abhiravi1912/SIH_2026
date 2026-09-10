@@ -1,7 +1,9 @@
 {
-  "benchmark_version": "v2.1",
+  "benchmark_version": "v2.2",
   "run_metadata": {
-    "timestamp": "2026-09-05T22:51:58.681086",
+    "timestamp": "2026-09-05T23:30:58.268965",
+    "evaluation_track": "Track A: Weak-Label / Spectral-Rule Benchmark",
+    "scientific_statement": "The weak-label benchmark measures agreement with spectral labeling rules, whereas the annotated benchmark provides a stronger estimate of real-world classification performance.",
     "random_seed": 42,
     "n_classes": 5,
     "class_names": {
@@ -20,42 +22,44 @@
       "NDWI"
     ],
     "max_train_samples_cap": 300000,
-    "test_samples": 262144,
+    "train_samples_total": 1223216,
+    "test_samples_total": 786432,
+    "test_scenes_count": 3,
     "python_version": "3.12.5",
-    "platform": "Windows-11-10.0.26200-SP0",
-    "dataset_dir": "D:\\SIH_2026\\data\\v2",
-    "classifier_source": "backend/models/v2/ (Person 1's V2 classifier classes)",
-    "note": "All classifiers trained on train+val split, evaluated on the same held-out test split with identical 6-feature vectors. No winner pre-selected \u2014 ranking is by measured Macro F1."
+    "platform": "Windows-11-10.0.26200-SP0"
   },
   "models": {
     "Random Forest": {
-      "model_name": "Random Forest",
-      "train_samples": 265496,
-      "test_samples": 262144,
-      "train_time_s": 11.5414,
-      "infer_time_s": 0.8495,
-      "overall_accuracy": 0.985725,
-      "macro_f1": 0.950773,
-      "weighted_f1": 0.985857,
-      "mean_iou": 0.918721,
+      "train_samples": 276371,
+      "test_samples": 786432,
+      "train_time_s": 6.0738,
+      "infer_time_s": 1.3687,
+      "overall_accuracy": 0.958499,
+      "macro_precision": 0.948307,
+      "macro_recall": 0.946441,
+      "macro_f1": 0.947278,
+      "weighted_precision": 0.958025,
+      "weighted_recall": 0.958499,
+      "weighted_f1": 0.958202,
+      "mean_iou": 0.908204,
       "per_class": {
         "Bare land": {
-          "precision": 0.984267,
-          "recall": 0.98132,
-          "f1": 0.982791,
-          "iou": 0.966165,
-          "support": 108888,
-          "TP": 106854,
-          "FP": 1708,
-          "FN": 2034
+          "precision": 0.923224,
+          "recall": 0.936685,
+          "f1": 0.929906,
+          "iou": 0.868995,
+          "support": 231131,
+          "TP": 216497,
+          "FP": 18004,
+          "FN": 14634
         },
         "Vegetation": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
           "iou": 1.0,
-          "support": 121421,
-          "TP": 121421,
+          "support": 359312,
+          "TP": 359312,
           "FP": 0,
           "FN": 0
         },
@@ -64,377 +68,586 @@
           "recall": 1.0,
           "f1": 1.0,
           "iou": 1.0,
-          "support": 10074,
-          "TP": 10074,
+          "support": 77231,
+          "TP": 77231,
           "FP": 0,
           "FN": 0
         },
         "Road": {
-          "precision": 0.755998,
-          "recall": 0.786767,
-          "f1": 0.771075,
-          "iou": 0.627439,
-          "support": 8010,
-          "TP": 6302,
-          "FP": 2034,
-          "FN": 1708
+          "precision": 0.831075,
+          "recall": 0.795518,
+          "f1": 0.812908,
+          "iou": 0.684789,
+          "support": 88047,
+          "TP": 70043,
+          "FP": 14237,
+          "FN": 18004
         },
         "Building": {
-          "precision": 1.0,
+          "precision": 0.987238,
           "recall": 1.0,
-          "f1": 1.0,
-          "iou": 1.0,
-          "support": 13751,
-          "TP": 13751,
-          "FP": 0,
+          "f1": 0.993578,
+          "iou": 0.987238,
+          "support": 30711,
+          "TP": 30711,
+          "FP": 397,
           "FN": 0
         }
       },
       "confusion_matrix": [
         [
-          106854,
+          216497,
           0,
           0,
-          2034,
-          0
+          14237,
+          397
         ],
         [
           0,
-          121421,
+          359312,
           0,
           0,
-          0
-        ],
-        [
-          0,
-          0,
-          10074,
-          0,
-          0
-        ],
-        [
-          1708,
-          0,
-          0,
-          6302,
           0
         ],
         [
           0,
           0,
+          77231,
+          0,
+          0
+        ],
+        [
+          18004,
           0,
           0,
-          13751
+          70043,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          30711
         ]
       ],
-      "n_samples": 262144,
-      "n_classes": 5
+      "n_samples": 786432,
+      "n_classes": 5,
+      "per_scene_breakdown": {
+        "test_scene_1_vit_ap_2026": {
+          "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+          "date": "2026-03-05",
+          "test_role": "Cross-geographic generalization (unseen region 1500km away, 2026 acquisition)",
+          "pixels": 262144,
+          "overall_accuracy": 0.980267,
+          "macro_f1": 0.932957,
+          "mean_iou": 0.894269,
+          "per_class_f1": {
+            "Bare land": 0.97619,
+            "Vegetation": 1.0,
+            "Water": 1.0,
+            "Road": 0.697494,
+            "Building": 0.991099
+          }
+        },
+        "test_scene_2_river_west_2026": {
+          "location": "Brahmaputra River West Section, Assam, India",
+          "date": "2026-03-06",
+          "test_role": "Spatially disjoint river channel AOI (2026 acquisition)",
+          "pixels": 262144,
+          "overall_accuracy": 0.90239,
+          "macro_f1": 0.927846,
+          "mean_iou": 0.877821,
+          "per_class_f1": {
+            "Bare land": 0.807119,
+            "Vegetation": 1.0,
+            "Water": 1.0,
+            "Road": 0.832111,
+            "Building": 1.0
+          }
+        },
+        "test_scene_3_vit_ap_2021": {
+          "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+          "date": "2021-03-06",
+          "test_role": "Historical Andhra Pradesh baseline scene (2021 acquisition)",
+          "pixels": 262144,
+          "overall_accuracy": 0.99284,
+          "macro_f1": 0.898582,
+          "mean_iou": 0.858628,
+          "per_class_f1": {
+            "Bare land": 0.983778,
+            "Vegetation": 1.0,
+            "Water": 1.0,
+            "Road": 0.524635,
+            "Building": 0.984498
+          }
+        }
+      }
     },
     "SVM (LinearSVC)": {
-      "model_name": "SVM (LinearSVC)",
-      "train_samples": 265496,
-      "test_samples": 262144,
-      "train_time_s": 4.3262,
-      "infer_time_s": 0.0404,
-      "overall_accuracy": 0.950829,
-      "macro_f1": 0.885895,
-      "weighted_f1": 0.954771,
-      "mean_iou": 0.817424,
+      "train_samples": 276371,
+      "test_samples": 786432,
+      "train_time_s": 5.1853,
+      "infer_time_s": 0.0901,
+      "overall_accuracy": 0.870916,
+      "macro_precision": 0.816361,
+      "macro_recall": 0.818072,
+      "macro_f1": 0.773297,
+      "weighted_precision": 0.881732,
+      "weighted_recall": 0.870916,
+      "weighted_f1": 0.856253,
+      "mean_iou": 0.682211,
       "per_class": {
         "Bare land": {
-          "precision": 0.970555,
-          "recall": 0.910266,
-          "f1": 0.939444,
-          "iou": 0.885804,
-          "support": 108888,
-          "TP": 99117,
-          "FP": 3007,
-          "FN": 9771
+          "precision": 0.753132,
+          "recall": 0.846784,
+          "f1": 0.797217,
+          "iou": 0.662811,
+          "support": 231131,
+          "TP": 195718,
+          "FP": 64154,
+          "FN": 35413
         },
         "Vegetation": {
-          "precision": 0.998573,
-          "recall": 0.996936,
-          "f1": 0.997754,
-          "iou": 0.995518,
-          "support": 121421,
-          "TP": 121049,
-          "FP": 173,
-          "FN": 372
+          "precision": 0.986106,
+          "recall": 0.99966,
+          "f1": 0.992837,
+          "iou": 0.985776,
+          "support": 359312,
+          "TP": 359190,
+          "FP": 5061,
+          "FN": 122
         },
         "Water": {
-          "precision": 0.994668,
-          "recall": 1.0,
-          "f1": 0.997327,
-          "iou": 0.994668,
-          "support": 10074,
-          "TP": 10074,
-          "FP": 54,
-          "FN": 0
+          "precision": 0.993283,
+          "recall": 0.999495,
+          "f1": 0.996379,
+          "iou": 0.992785,
+          "support": 77231,
+          "TP": 77192,
+          "FP": 522,
+          "FN": 39
         },
         "Road": {
-          "precision": 0.497535,
-          "recall": 0.957428,
-          "f1": 0.654798,
-          "iou": 0.486766,
-          "support": 8010,
-          "TP": 7669,
-          "FP": 7745,
-          "FN": 341
+          "precision": 0.817638,
+          "recall": 0.254614,
+          "f1": 0.388308,
+          "iou": 0.240932,
+          "support": 88047,
+          "TP": 22418,
+          "FP": 5000,
+          "FN": 65629
         },
         "Building": {
-          "precision": 0.855839,
-          "recall": 0.825031,
-          "f1": 0.840153,
-          "iou": 0.724365,
-          "support": 13751,
-          "TP": 11345,
-          "FP": 1911,
-          "FN": 2406
+          "precision": 0.531647,
+          "recall": 0.989808,
+          "f1": 0.691744,
+          "iou": 0.528753,
+          "support": 30711,
+          "TP": 30398,
+          "FP": 26779,
+          "FN": 313
         }
       },
       "confusion_matrix": [
         [
-          99117,
-          173,
-          54,
-          7633,
-          1911
+          195718,
+          3625,
+          252,
+          4918,
+          26618
         ],
         [
-          260,
-          121049,
+          102,
+          359190,
           0,
-          112,
+          20,
           0
         ],
         [
+          38,
           0,
-          0,
-          10074,
-          0,
+          77192,
+          1,
           0
         ],
         [
-          341,
-          0,
-          0,
-          7669,
-          0
+          63762,
+          1436,
+          270,
+          22418,
+          161
         ],
         [
-          2406,
+          252,
           0,
           0,
-          0,
-          11345
+          61,
+          30398
         ]
       ],
-      "n_samples": 262144,
-      "n_classes": 5
+      "n_samples": 786432,
+      "n_classes": 5,
+      "per_scene_breakdown": {
+        "test_scene_1_vit_ap_2026": {
+          "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+          "date": "2026-03-05",
+          "test_role": "Cross-geographic generalization (unseen region 1500km away, 2026 acquisition)",
+          "pixels": 262144,
+          "overall_accuracy": 0.895245,
+          "macro_f1": 0.720663,
+          "mean_iou": 0.653814,
+          "per_class_f1": {
+            "Bare land": 0.866461,
+            "Vegetation": 0.995814,
+            "Water": 0.996636,
+            "Road": 0.116004,
+            "Building": 0.628401
+          }
+        },
+        "test_scene_2_river_west_2026": {
+          "location": "Brahmaputra River West Section, Assam, India",
+          "date": "2026-03-06",
+          "test_role": "Spatially disjoint river channel AOI (2026 acquisition)",
+          "pixels": 262144,
+          "overall_accuracy": 0.769924,
+          "macro_f1": 0.80181,
+          "mean_iou": 0.72039,
+          "per_class_f1": {
+            "Bare land": 0.675512,
+            "Vegetation": 0.972729,
+            "Water": 0.997076,
+            "Road": 0.42866,
+            "Building": 0.935071
+          }
+        },
+        "test_scene_3_vit_ap_2021": {
+          "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+          "date": "2021-03-06",
+          "test_role": "Historical Andhra Pradesh baseline scene (2021 acquisition)",
+          "pixels": 262144,
+          "overall_accuracy": 0.947578,
+          "macro_f1": 0.698604,
+          "mean_iou": 0.630733,
+          "per_class_f1": {
+            "Bare land": 0.870082,
+            "Vegetation": 0.996456,
+            "Water": 0.99225,
+            "Road": 0.131726,
+            "Building": 0.502504
+          }
+        }
+      }
     },
     "XGBoost": {
-      "model_name": "XGBoost",
-      "train_samples": 265496,
-      "test_samples": 262144,
-      "train_time_s": 10.8139,
-      "infer_time_s": 0.7271,
-      "overall_accuracy": 0.988457,
-      "macro_f1": 0.961675,
-      "weighted_f1": 0.988129,
-      "mean_iou": 0.932304,
+      "train_samples": 276371,
+      "test_samples": 786432,
+      "train_time_s": 4.4919,
+      "infer_time_s": 0.8901,
+      "overall_accuracy": 0.970437,
+      "macro_precision": 0.97271,
+      "macro_recall": 0.954813,
+      "macro_f1": 0.962304,
+      "weighted_precision": 0.970868,
+      "weighted_recall": 0.970437,
+      "weighted_f1": 0.969684,
+      "mean_iou": 0.93178,
       "per_class": {
         "Bare land": {
-          "precision": 0.981418,
-          "recall": 0.990972,
-          "f1": 0.986172,
-          "iou": 0.972722,
-          "support": 108888,
-          "TP": 107905,
-          "FP": 2043,
-          "FN": 983
+          "precision": 0.924762,
+          "recall": 0.981348,
+          "f1": 0.952215,
+          "iou": 0.908789,
+          "support": 231131,
+          "TP": 226820,
+          "FP": 18454,
+          "FN": 4311
         },
         "Vegetation": {
-          "precision": 0.998955,
-          "recall": 0.999489,
-          "f1": 0.999222,
-          "iou": 0.998445,
-          "support": 121421,
-          "TP": 121359,
-          "FP": 127,
-          "FN": 62
+          "precision": 0.998501,
+          "recall": 0.997364,
+          "f1": 0.997932,
+          "iou": 0.995873,
+          "support": 359312,
+          "TP": 358365,
+          "FP": 538,
+          "FN": 947
         },
         "Water": {
-          "precision": 0.996832,
-          "recall": 0.999603,
-          "f1": 0.998216,
-          "iou": 0.996438,
-          "support": 10074,
-          "TP": 10070,
-          "FP": 32,
-          "FN": 4
+          "precision": 0.996546,
+          "recall": 0.997462,
+          "f1": 0.997004,
+          "iou": 0.994026,
+          "support": 77231,
+          "TP": 77035,
+          "FP": 267,
+          "FN": 196
         },
         "Road": {
-          "precision": 0.912414,
-          "recall": 0.779026,
-          "f1": 0.840461,
-          "iou": 0.724823,
-          "support": 8010,
-          "TP": 6240,
-          "FP": 599,
-          "FN": 1770
+          "precision": 0.947891,
+          "recall": 0.797892,
+          "f1": 0.866448,
+          "iou": 0.764365,
+          "support": 88047,
+          "TP": 70252,
+          "FP": 3862,
+          "FN": 17795
         },
         "Building": {
-          "precision": 0.983659,
-          "recall": 0.984947,
-          "f1": 0.984302,
-          "iou": 0.96909,
-          "support": 13751,
-          "TP": 13544,
-          "FP": 225,
-          "FN": 207
+          "precision": 0.995849,
+          "recall": 1.0,
+          "f1": 0.99792,
+          "iou": 0.995849,
+          "support": 30711,
+          "TP": 30711,
+          "FP": 128,
+          "FN": 0
         }
       },
       "confusion_matrix": [
         [
-          107905,
-          127,
-          32,
-          599,
-          225
+          226820,
+          267,
+          77,
+          3840,
+          127
         ],
         [
-          62,
-          121359,
+          947,
+          358365,
           0,
           0,
           0
         ],
         [
-          4,
+          173,
           0,
-          10070,
-          0,
+          77035,
+          22,
+          1
+        ],
+        [
+          17334,
+          271,
+          190,
+          70252,
           0
         ],
         [
-          1770,
-          0,
-          0,
-          6240,
-          0
-        ],
-        [
-          207,
           0,
           0,
           0,
-          13544
+          0,
+          30711
         ]
       ],
-      "n_samples": 262144,
-      "n_classes": 5
+      "n_samples": 786432,
+      "n_classes": 5,
+      "per_scene_breakdown": {
+        "test_scene_1_vit_ap_2026": {
+          "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+          "date": "2026-03-05",
+          "test_role": "Cross-geographic generalization (unseen region 1500km away, 2026 acquisition)",
+          "pixels": 262144,
+          "overall_accuracy": 0.981522,
+          "macro_f1": 0.93342,
+          "mean_iou": 0.894952,
+          "per_class_f1": {
+            "Bare land": 0.978096,
+            "Vegetation": 0.997905,
+            "Water": 0.996275,
+            "Road": 0.698665,
+            "Building": 0.996161
+          }
+        },
+        "test_scene_2_river_west_2026": {
+          "location": "Brahmaputra River West Section, Assam, India",
+          "date": "2026-03-06",
+          "test_role": "Spatially disjoint river channel AOI (2026 acquisition)",
+          "pixels": 262144,
+          "overall_accuracy": 0.935406,
+          "macro_f1": 0.95199,
+          "mean_iou": 0.913719,
+          "per_class_f1": {
+            "Bare land": 0.881211,
+            "Vegetation": 0.995431,
+            "Water": 0.997607,
+            "Road": 0.885784,
+            "Building": 0.999918
+          }
+        },
+        "test_scene_3_vit_ap_2021": {
+          "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+          "date": "2021-03-06",
+          "test_role": "Historical Andhra Pradesh baseline scene (2021 acquisition)",
+          "pixels": 262144,
+          "overall_accuracy": 0.994385,
+          "macro_f1": 0.930631,
+          "mean_iou": 0.893277,
+          "per_class_f1": {
+            "Bare land": 0.987583,
+            "Vegetation": 0.998627,
+            "Water": 0.994343,
+            "Road": 0.674699,
+            "Building": 0.997905
+          }
+        }
+      }
     },
     "KNN (k=7)": {
-      "model_name": "KNN (k=7)",
-      "train_samples": 265496,
-      "test_samples": 262144,
-      "train_time_s": 0.9842,
-      "infer_time_s": 1.8105,
-      "overall_accuracy": 0.96954,
-      "macro_f1": 0.927473,
-      "weighted_f1": 0.968959,
-      "mean_iou": 0.873688,
+      "train_samples": 50000,
+      "test_samples": 786432,
+      "train_time_s": 0.0918,
+      "infer_time_s": 5.8649,
+      "overall_accuracy": 0.897456,
+      "macro_precision": 0.873315,
+      "macro_recall": 0.882134,
+      "macro_f1": 0.867978,
+      "weighted_precision": 0.902519,
+      "weighted_recall": 0.897456,
+      "weighted_f1": 0.89513,
+      "mean_iou": 0.778289,
       "per_class": {
         "Bare land": {
-          "precision": 0.954352,
-          "recall": 0.97423,
-          "f1": 0.964189,
-          "iou": 0.930854,
-          "support": 108888,
-          "TP": 106082,
-          "FP": 5074,
-          "FN": 2806
+          "precision": 0.881387,
+          "recall": 0.771787,
+          "f1": 0.822954,
+          "iou": 0.699169,
+          "support": 231131,
+          "TP": 178384,
+          "FP": 24006,
+          "FN": 52747
         },
         "Vegetation": {
-          "precision": 0.992435,
-          "recall": 0.989639,
-          "f1": 0.991035,
-          "iou": 0.982229,
-          "support": 121421,
-          "TP": 120163,
-          "FP": 916,
-          "FN": 1258
+          "precision": 0.907967,
+          "recall": 0.998561,
+          "f1": 0.951112,
+          "iou": 0.906781,
+          "support": 359312,
+          "TP": 358795,
+          "FP": 36368,
+          "FN": 517
         },
         "Water": {
-          "precision": 0.993053,
-          "recall": 0.99325,
-          "f1": 0.993151,
-          "iou": 0.986396,
-          "support": 10074,
-          "TP": 10006,
-          "FP": 70,
-          "FN": 68
+          "precision": 0.995653,
+          "recall": 0.993422,
+          "f1": 0.994536,
+          "iou": 0.989132,
+          "support": 77231,
+          "TP": 76723,
+          "FP": 335,
+          "FN": 508
         },
         "Road": {
-          "precision": 0.901836,
-          "recall": 0.705368,
-          "f1": 0.791594,
-          "iou": 0.655072,
-          "support": 8010,
-          "TP": 5650,
-          "FP": 615,
-          "FN": 2360
+          "precision": 0.947809,
+          "recall": 0.720456,
+          "f1": 0.818641,
+          "iou": 0.692965,
+          "support": 88047,
+          "TP": 63434,
+          "FP": 3493,
+          "FN": 24613
         },
         "Building": {
-          "precision": 0.903449,
-          "recall": 0.891426,
-          "f1": 0.897397,
-          "iou": 0.81389,
-          "support": 13751,
-          "TP": 12258,
-          "FP": 1310,
-          "FN": 1493
+          "precision": 0.63376,
+          "recall": 0.926443,
+          "f1": 0.752649,
+          "iou": 0.603397,
+          "support": 30711,
+          "TP": 28452,
+          "FP": 16442,
+          "FN": 2259
         }
       },
       "confusion_matrix": [
         [
-          106082,
-          835,
-          70,
-          591,
-          1310
+          178384,
+          33043,
+          162,
+          3429,
+          16113
         ],
         [
-          1248,
-          120163,
+          511,
+          358795,
           0,
-          10,
+          6,
           0
         ],
         [
-          54,
+          449,
           0,
-          10006,
-          14,
-          0
+          76723,
+          58,
+          1
         ],
         [
-          2279,
-          81,
-          0,
-          5650,
-          0
+          20787,
+          3325,
+          173,
+          63434,
+          328
         ],
         [
-          1493,
+          2259,
           0,
           0,
           0,
-          12258
+          28452
         ]
       ],
-      "n_samples": 262144,
-      "n_classes": 5
+      "n_samples": 786432,
+      "n_classes": 5,
+      "per_scene_breakdown": {
+        "test_scene_1_vit_ap_2026": {
+          "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+          "date": "2026-03-05",
+          "test_role": "Cross-geographic generalization (unseen region 1500km away, 2026 acquisition)",
+          "pixels": 262144,
+          "overall_accuracy": 0.866856,
+          "macro_f1": 0.783047,
+          "mean_iou": 0.678903,
+          "per_class_f1": {
+            "Bare land": 0.823373,
+            "Vegetation": 0.934115,
+            "Water": 0.99167,
+            "Road": 0.491054,
+            "Building": 0.675024
+          }
+        },
+        "test_scene_2_river_west_2026": {
+          "location": "Brahmaputra River West Section, Assam, India",
+          "date": "2026-03-06",
+          "test_role": "Spatially disjoint river channel AOI (2026 acquisition)",
+          "pixels": 262144,
+          "overall_accuracy": 0.905815,
+          "macro_f1": 0.917435,
+          "mean_iou": 0.85318,
+          "per_class_f1": {
+            "Bare land": 0.845747,
+            "Vegetation": 0.95267,
+            "Water": 0.997483,
+            "Road": 0.848598,
+            "Building": 0.942678
+          }
+        },
+        "test_scene_3_vit_ap_2021": {
+          "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+          "date": "2021-03-06",
+          "test_role": "Historical Andhra Pradesh baseline scene (2021 acquisition)",
+          "pixels": 262144,
+          "overall_accuracy": 0.919697,
+          "macro_f1": 0.803331,
+          "mean_iou": 0.698153,
+          "per_class_f1": {
+            "Bare land": 0.79042,
+            "Vegetation": 0.962035,
+            "Water": 0.980706,
+            "Road": 0.687526,
+            "Building": 0.595969
+          }
+        }
+      }
     }
   }
 }

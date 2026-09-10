@@ -1,0 +1,246 @@
+{
+  "XGBoost": {
+    "model": "XGBoost",
+    "per_scene": {
+      "test_scene_1_vit_ap_2026": {
+        "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+        "date": "2026-03-05",
+        "test_role": "Cross-geographic generalization (unseen region 1500km away, 2026 acquisition)",
+        "pixels": 262144,
+        "overall_accuracy": 0.985756,
+        "macro_f1": 0.96931,
+        "mean_iou": 0.944262,
+        "per_class_f1": {
+          "Bare land": 0.982849,
+          "Vegetation": 0.994417,
+          "Water": 1.0,
+          "Road": 0.875687,
+          "Building": 0.993596
+        }
+      },
+      "test_scene_2_river_west_2026": {
+        "location": "Brahmaputra River West Section, Assam, India",
+        "date": "2026-03-06",
+        "test_role": "Spatially disjoint river channel AOI (2026 acquisition)",
+        "pixels": 262144,
+        "overall_accuracy": 0.958847,
+        "macro_f1": 0.968711,
+        "mean_iou": 0.941877,
+        "per_class_f1": {
+          "Bare land": 0.910798,
+          "Vegetation": 0.99665,
+          "Water": 0.999965,
+          "Road": 0.936267,
+          "Building": 0.999877
+        }
+      },
+      "test_scene_3_vit_ap_2021": {
+        "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+        "date": "2021-03-06",
+        "test_role": "Historical Andhra Pradesh baseline scene (2021 acquisition)",
+        "pixels": 262144,
+        "overall_accuracy": 0.993267,
+        "macro_f1": 0.963674,
+        "mean_iou": 0.935761,
+        "per_class_f1": {
+          "Bare land": 0.985133,
+          "Vegetation": 0.99677,
+          "Water": 0.99804,
+          "Road": 0.845191,
+          "Building": 0.993236
+        }
+      }
+    },
+    "aggregate": {
+      "mean_oa": 0.9793,
+      "std_oa": 0.0148,
+      "mean_macro_f1": 0.9672,
+      "std_macro_f1": 0.0025,
+      "mean_miou": 0.9406,
+      "std_miou": 0.0036
+    }
+  },
+  "Random Forest": {
+    "model": "Random Forest",
+    "per_scene": {
+      "test_scene_1_vit_ap_2026": {
+        "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+        "date": "2026-03-05",
+        "test_role": "Cross-geographic generalization (unseen region 1500km away, 2026 acquisition)",
+        "pixels": 262144,
+        "overall_accuracy": 0.969067,
+        "macro_f1": 0.926459,
+        "mean_iou": 0.885838,
+        "per_class_f1": {
+          "Bare land": 0.961231,
+          "Vegetation": 1.0,
+          "Water": 1.0,
+          "Road": 0.672375,
+          "Building": 0.998691
+        }
+      },
+      "test_scene_2_river_west_2026": {
+        "location": "Brahmaputra River West Section, Assam, India",
+        "date": "2026-03-06",
+        "test_role": "Spatially disjoint river channel AOI (2026 acquisition)",
+        "pixels": 262144,
+        "overall_accuracy": 0.845097,
+        "macro_f1": 0.868325,
+        "mean_iou": 0.806881,
+        "per_class_f1": {
+          "Bare land": 0.550056,
+          "Vegetation": 1.0,
+          "Water": 1.0,
+          "Road": 0.79157,
+          "Building": 1.0
+        }
+      },
+      "test_scene_3_vit_ap_2021": {
+        "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+        "date": "2021-03-06",
+        "test_role": "Historical Andhra Pradesh baseline scene (2021 acquisition)",
+        "pixels": 262144,
+        "overall_accuracy": 0.987701,
+        "macro_f1": 0.885227,
+        "mean_iou": 0.847486,
+        "per_class_f1": {
+          "Bare land": 0.971615,
+          "Vegetation": 1.0,
+          "Water": 1.0,
+          "Road": 0.455778,
+          "Building": 0.998741
+        }
+      }
+    },
+    "aggregate": {
+      "mean_oa": 0.934,
+      "std_oa": 0.0633,
+      "mean_macro_f1": 0.8933,
+      "std_macro_f1": 0.0244,
+      "mean_miou": 0.8467,
+      "std_miou": 0.0322
+    }
+  },
+  "SVM (LinearSVC)": {
+    "model": "SVM (LinearSVC)",
+    "per_scene": {
+      "test_scene_1_vit_ap_2026": {
+        "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+        "date": "2026-03-05",
+        "test_role": "Cross-geographic generalization (unseen region 1500km away, 2026 acquisition)",
+        "pixels": 262144,
+        "overall_accuracy": 0.905479,
+        "macro_f1": 0.827231,
+        "mean_iou": 0.74274,
+        "per_class_f1": {
+          "Bare land": 0.876427,
+          "Vegetation": 0.994152,
+          "Water": 0.997327,
+          "Road": 0.515924,
+          "Building": 0.752326
+        }
+      },
+      "test_scene_2_river_west_2026": {
+        "location": "Brahmaputra River West Section, Assam, India",
+        "date": "2026-03-06",
+        "test_role": "Spatially disjoint river channel AOI (2026 acquisition)",
+        "pixels": 262144,
+        "overall_accuracy": 0.836842,
+        "macro_f1": 0.844311,
+        "mean_iou": 0.764392,
+        "per_class_f1": {
+          "Bare land": 0.540917,
+          "Vegetation": 0.990397,
+          "Water": 0.998517,
+          "Road": 0.792473,
+          "Building": 0.899252
+        }
+      },
+      "test_scene_3_vit_ap_2021": {
+        "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+        "date": "2021-03-06",
+        "test_role": "Historical Andhra Pradesh baseline scene (2021 acquisition)",
+        "pixels": 262144,
+        "overall_accuracy": 0.971233,
+        "macro_f1": 0.822166,
+        "mean_iou": 0.743213,
+        "per_class_f1": {
+          "Bare land": 0.934343,
+          "Vegetation": 0.99675,
+          "Water": 0.995074,
+          "Road": 0.493789,
+          "Building": 0.690873
+        }
+      }
+    },
+    "aggregate": {
+      "mean_oa": 0.9045,
+      "std_oa": 0.0549,
+      "mean_macro_f1": 0.8312,
+      "std_macro_f1": 0.0095,
+      "mean_miou": 0.7501,
+      "std_miou": 0.0101
+    }
+  },
+  "KNN (k=7)": {
+    "model": "KNN (k=7)",
+    "per_scene": {
+      "test_scene_1_vit_ap_2026": {
+        "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+        "date": "2026-03-05",
+        "test_role": "Cross-geographic generalization (unseen region 1500km away, 2026 acquisition)",
+        "pixels": 262144,
+        "overall_accuracy": 0.904484,
+        "macro_f1": 0.830993,
+        "mean_iou": 0.736953,
+        "per_class_f1": {
+          "Bare land": 0.879833,
+          "Vegetation": 0.965618,
+          "Water": 0.9912,
+          "Road": 0.664393,
+          "Building": 0.65392
+        }
+      },
+      "test_scene_2_river_west_2026": {
+        "location": "Brahmaputra River West Section, Assam, India",
+        "date": "2026-03-06",
+        "test_role": "Spatially disjoint river channel AOI (2026 acquisition)",
+        "pixels": 262144,
+        "overall_accuracy": 0.898876,
+        "macro_f1": 0.914061,
+        "mean_iou": 0.852126,
+        "per_class_f1": {
+          "Bare land": 0.775175,
+          "Vegetation": 0.973654,
+          "Water": 0.995822,
+          "Road": 0.861755,
+          "Building": 0.963898
+        }
+      },
+      "test_scene_3_vit_ap_2021": {
+        "location": "VIT-AP Campus, Amaravati, Andhra Pradesh, India",
+        "date": "2021-03-06",
+        "test_role": "Historical Andhra Pradesh baseline scene (2021 acquisition)",
+        "pixels": 262144,
+        "overall_accuracy": 0.951542,
+        "macro_f1": 0.798536,
+        "mean_iou": 0.702092,
+        "per_class_f1": {
+          "Bare land": 0.887549,
+          "Vegetation": 0.982042,
+          "Water": 0.962282,
+          "Road": 0.534852,
+          "Building": 0.625954
+        }
+      }
+    },
+    "aggregate": {
+      "mean_oa": 0.9183,
+      "std_oa": 0.0236,
+      "mean_macro_f1": 0.8479,
+      "std_macro_f1": 0.0486,
+      "mean_miou": 0.7637,
+      "std_miou": 0.0641
+    }
+  }
+}

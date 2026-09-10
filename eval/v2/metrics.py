@@ -1,7 +1,7 @@
 """
 eval/v2/metrics.py
 ==================
-Person 2 — V2 evaluation metrics.
+Person 2 — V2 scientific evaluation metrics.
 
 Pure functions: no model imports, no I/O side-effects.
 All functions operate on numpy arrays (y_true, y_pred).
@@ -10,7 +10,8 @@ Metrics implemented
 -------------------
 - overall_accuracy
 - per_class_precision / recall / f1 / iou
-- macro_f1 / weighted_f1
+- macro_precision / macro_recall / macro_f1
+- weighted_precision / weighted_recall / weighted_f1
 - mean_iou
 - full_report  ← single entry-point returning all metrics as a dict
 
@@ -23,7 +24,7 @@ Usage
 from __future__ import annotations
 
 import numpy as np
-from typing import Sequence
+from typing import Sequence, Dict, Any
 
 
 # ─── Class constants (must match backend/models/segmentation.py CLASS_MAP) ───
@@ -57,7 +58,7 @@ def confusion_matrix_array(
     n_classes: int,
 ) -> np.ndarray:
     """
-    Build a confusion matrix entirely in numpy (no sklearn dependency).
+    Build a confusion matrix entirely in numpy.
 
     Returns:
         cm: (n_classes, n_classes) int64 array
@@ -115,10 +116,40 @@ def per_class_metrics(
     return results
 
 
+def macro_precision(per_class: dict[int, dict[str, float]]) -> float:
+    """Unweighted mean Precision across all classes."""
+    precs = [v["precision"] for v in per_class.values()]
+    return round(float(np.mean(precs)), 6)
+
+
+def macro_recall(per_class: dict[int, dict[str, float]]) -> float:
+    """Unweighted mean Recall across all classes."""
+    recs = [v["recall"] for v in per_class.values()]
+    return round(float(np.mean(recs)), 6)
+
+
 def macro_f1(per_class: dict[int, dict[str, float]]) -> float:
     """Unweighted mean F1 across all classes."""
     f1s = [v["f1"] for v in per_class.values()]
     return round(float(np.mean(f1s)), 6)
+
+
+def weighted_precision(per_class: dict[int, dict[str, float]]) -> float:
+    """Support-weighted mean Precision across all classes."""
+    total_support = sum(v["support"] for v in per_class.values())
+    if total_support == 0:
+        return 0.0
+    w_prec = sum(v["precision"] * v["support"] for v in per_class.values()) / total_support
+    return round(float(w_prec), 6)
+
+
+def weighted_recall(per_class: dict[int, dict[str, float]]) -> float:
+    """Support-weighted mean Recall across all classes."""
+    total_support = sum(v["support"] for v in per_class.values())
+    if total_support == 0:
+        return 0.0
+    w_rec = sum(v["recall"] * v["support"] for v in per_class.values()) / total_support
+    return round(float(w_rec), 6)
 
 
 def weighted_f1(per_class: dict[int, dict[str, float]]) -> float:
@@ -126,9 +157,7 @@ def weighted_f1(per_class: dict[int, dict[str, float]]) -> float:
     total_support = sum(v["support"] for v in per_class.values())
     if total_support == 0:
         return 0.0
-    wf1 = sum(
-        v["f1"] * v["support"] for v in per_class.values()
-    ) / total_support
+    wf1 = sum(v["f1"] * v["support"] for v in per_class.values()) / total_support
     return round(float(wf1), 6)
 
 
@@ -145,21 +174,14 @@ def full_report(
     n_classes: int = 5,
 ) -> dict:
     """
-    Compute all evaluation metrics for a single classifier run.
+    Compute comprehensive evaluation metrics for a single classifier run.
 
-    Parameters
-    ----------
-    y_true : (N,) uint8/int array of ground-truth labels
-    y_pred : (N,) uint8/int array of predicted labels
-    class_names : optional dict {class_id: name}
-    n_classes : number of classes (default 5)
-
-    Returns
-    -------
-    dict with keys:
-        overall_accuracy, macro_f1, weighted_f1, mean_iou,
-        per_class: {class_name: {precision, recall, f1, iou, support}},
-        confusion_matrix: [[…]]
+    Returns:
+        dict with keys:
+            overall_accuracy, macro_precision, macro_recall, macro_f1,
+            weighted_precision, weighted_recall, weighted_f1, mean_iou,
+            per_class: {class_name: {precision, recall, f1, iou, support}},
+            confusion_matrix: [[…]]
     """
     if class_names is None:
         class_names = DEFAULT_CLASS_NAMES
@@ -171,7 +193,6 @@ def full_report(
     cm = confusion_matrix_array(y_true, y_pred, n_classes)
     pc = per_class_metrics(cm)
 
-    # Build per_class dict keyed by class name
     per_class_named = {}
     for cid, stats in pc.items():
         name = class_names.get(cid, f"class_{cid}")
@@ -179,7 +200,11 @@ def full_report(
 
     return {
         "overall_accuracy": round(oa, 6),
+        "macro_precision": macro_precision(pc),
+        "macro_recall": macro_recall(pc),
         "macro_f1": macro_f1(pc),
+        "weighted_precision": weighted_precision(pc),
+        "weighted_recall": weighted_recall(pc),
         "weighted_f1": weighted_f1(pc),
         "mean_iou": mean_iou(pc),
         "per_class": per_class_named,
@@ -194,17 +219,19 @@ def print_report(model_name: str, report: dict, class_names: dict[int, str] | No
     if class_names is None:
         class_names = DEFAULT_CLASS_NAMES
 
-    width = 64
+    width = 72
     print("=" * width)
-    print(f"  Model: {model_name}")
+    print(f"  Model Evaluation Report: {model_name}")
     print("=" * width)
-    print(f"  Overall Accuracy : {report['overall_accuracy']:.4f}")
-    print(f"  Macro F1         : {report['macro_f1']:.4f}")
-    print(f"  Weighted F1      : {report['weighted_f1']:.4f}")
-    print(f"  Mean IoU (mIoU)  : {report['mean_iou']:.4f}")
+    print(f"  Overall Accuracy    : {report['overall_accuracy']:.4f}")
+    print(f"  Macro Precision     : {report.get('macro_precision', 0.0):.4f}")
+    print(f"  Macro Recall        : {report.get('macro_recall', 0.0):.4f}")
+    print(f"  Macro F1            : {report['macro_f1']:.4f}")
+    print(f"  Weighted F1         : {report['weighted_f1']:.4f}")
+    print(f"  Mean IoU (mIoU)     : {report['mean_iou']:.4f}")
     print()
-    print(f"  {'Class':<14} {'Prec':>7} {'Rec':>7} {'F1':>7} {'IoU':>7} {'Support':>9}")
-    print("  " + "-" * 54)
+    print(f"  {'Class':<14} {'Prec':>7} {'Rec':>7} {'F1':>7} {'IoU':>7} {'Support':>10}")
+    print("  " + "-" * 56)
     for cls_name, stats in report["per_class"].items():
         print(
             f"  {cls_name:<14} "
@@ -212,6 +239,6 @@ def print_report(model_name: str, report: dict, class_names: dict[int, str] | No
             f"{stats['recall']:>7.4f} "
             f"{stats['f1']:>7.4f} "
             f"{stats['iou']:>7.4f} "
-            f"{stats['support']:>9,}"
+            f"{stats['support']:>10,}"
         )
     print("=" * width)
